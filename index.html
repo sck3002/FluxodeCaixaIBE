@@ -136,7 +136,17 @@ table.report tr.saldo-row td{font-weight:700;background:#FBF8F0;}
 <div id="modalRoot"></div>
 <div id="toast" class="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
+/* ============================================================
+   CONFIGURAÇÃO DO SUPABASE
+   Mesmo projeto usado no app VanessaDoces - tabelas próprias
+   prefixadas com "igreja_". Cole aqui a sua anon key.
+============================================================ */
+const SUPABASE_URL = 'https://stwqlmxymyixgbwxynxh.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_jBjgD5yEzdHdGT1pEZ6Jkw_kj3lowPV';
+const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 /* ============================================================
    CONSTANTES E ESTADO
 ============================================================ */
@@ -166,7 +176,6 @@ const DEFAULT_CATEGORIAS = [
   {nome:CAT_TRANSFER, tipo:'ambos'}
 ];
 
-let db = null;
 let state = {
   tab: 'inicio',
   lancamentos: [],
@@ -240,67 +249,89 @@ function toCSV(rows){
 }
 
 /* ============================================================
-   BANCO DE DADOS (IndexedDB - local ao dispositivo)
+   BANCO DE DADOS (Supabase - mesmo projeto do VanessaDoces,
+   tabelas próprias prefixadas com "igreja_")
 ============================================================ */
-function openDB(){
-  return new Promise((resolve,reject)=>{
-    const req = indexedDB.open('igrejaFinancasDB', 1);
-    req.onupgradeneeded = (e)=>{
-      const d = e.target.result;
-      if(!d.objectStoreNames.contains('lancamentos')){
-        const s = d.createObjectStore('lancamentos',{keyPath:'id',autoIncrement:true});
-        s.createIndex('data','data');
-        s.createIndex('conta','conta');
-        s.createIndex('categoria','categoria');
-      }
-      if(!d.objectStoreNames.contains('categorias')){
-        d.createObjectStore('categorias',{keyPath:'id',autoIncrement:true});
-      }
-      if(!d.objectStoreNames.contains('config')){
-        d.createObjectStore('config',{keyPath:'key'});
-      }
+const TABLES = { lancamentos:'igreja_lancamentos', categorias:'igreja_categorias', config:'igreja_config' };
+const PK = { lancamentos:'id', categorias:'id', config:'key' };
+
+function toRow(storeName, obj){
+  if(storeName === 'lancamentos'){
+    const row = {
+      data: obj.data,
+      historico: obj.historico,
+      categoria: obj.categoria,
+      conta: obj.conta,
+      tipo: obj.tipo,
+      valor: obj.valor,
+      transfer_group: obj.transferGroup ?? null
     };
-    req.onsuccess = (e)=>resolve(e.target.result);
-    req.onerror = (e)=>reject(e.target.error);
-  });
+    if(obj.id !== undefined) row.id = obj.id;
+    return row;
+  }
+  if(storeName === 'categorias'){
+    const row = { nome: obj.nome, tipo: obj.tipo };
+    if(obj.id !== undefined) row.id = obj.id;
+    return row;
+  }
+  if(storeName === 'config'){
+    return { key: obj.key, saldos: obj.saldos, data_base: obj.dataBase };
+  }
+  return obj;
 }
-function tx(storeName, mode){
-  return db.transaction(storeName, mode).objectStore(storeName);
+function fromRow(storeName, row){
+  if(storeName === 'lancamentos'){
+    return { ...row, transferGroup: row.transfer_group ?? undefined };
+  }
+  if(storeName === 'config'){
+    return { ...row, dataBase: row.data_base };
+  }
+  return row;
 }
-function dbGetAll(storeName){
-  return new Promise((resolve,reject)=>{
-    const req = tx(storeName,'readonly').getAll();
-    req.onsuccess = ()=>resolve(req.result);
-    req.onerror = ()=>reject(req.error);
-  });
+
+async function dbGetAll(storeName){
+  const { data, error } = await sbClient.from(TABLES[storeName]).select('*');
+  if(error){
+    console.error(error);
+    showToast('Erro ao carregar dados do Supabase. Verifique a conexão/credenciais.');
+    return [];
+  }
+  return data.map(r=>fromRow(storeName, r));
 }
-function dbAdd(storeName, obj){
-  return new Promise((resolve,reject)=>{
-    const req = tx(storeName,'readwrite').add(obj);
-    req.onsuccess = ()=>resolve(req.result);
-    req.onerror = ()=>reject(req.error);
-  });
+async function dbAdd(storeName, obj){
+  const { data, error } = await sbClient.from(TABLES[storeName]).insert(toRow(storeName, obj)).select().single();
+  if(error){
+    console.error(error);
+    showToast('Erro ao salvar no Supabase.');
+    throw error;
+  }
+  return data.id;
 }
-function dbPut(storeName, obj){
-  return new Promise((resolve,reject)=>{
-    const req = tx(storeName,'readwrite').put(obj);
-    req.onsuccess = ()=>resolve(req.result);
-    req.onerror = ()=>reject(req.error);
-  });
+async function dbPut(storeName, obj){
+  const { error } = await sbClient.from(TABLES[storeName]).upsert(toRow(storeName, obj), { onConflict: PK[storeName] });
+  if(error){
+    console.error(error);
+    showToast('Erro ao atualizar no Supabase.');
+    throw error;
+  }
 }
-function dbDelete(storeName, key){
-  return new Promise((resolve,reject)=>{
-    const req = tx(storeName,'readwrite').delete(key);
-    req.onsuccess = ()=>resolve();
-    req.onerror = ()=>reject(req.error);
-  });
+async function dbDelete(storeName, key){
+  const { error } = await sbClient.from(TABLES[storeName]).delete().eq(PK[storeName], key);
+  if(error){
+    console.error(error);
+    showToast('Erro ao excluir no Supabase.');
+    throw error;
+  }
 }
-function dbClear(storeName){
-  return new Promise((resolve,reject)=>{
-    const req = tx(storeName,'readwrite').clear();
-    req.onsuccess = ()=>resolve();
-    req.onerror = ()=>reject(req.error);
-  });
+async function dbClear(storeName){
+  const pk = PK[storeName];
+  const query = sbClient.from(TABLES[storeName]).delete();
+  const { error } = pk === 'key' ? await query.gt(pk, '') : await query.gt(pk, -1);
+  if(error){
+    console.error(error);
+    showToast('Erro ao limpar dados no Supabase.');
+    throw error;
+  }
 }
 
 async function loadAll(){
@@ -326,6 +357,7 @@ async function seedIfEmpty(){
     await dbPut('config', {key:'saldosIniciais', saldos:{Caixa:0,Banco:0,Adiantamento:0}, dataBase: todayISO()});
   }
 }
+
 
 /* ============================================================
    CÁLCULOS
@@ -1138,7 +1170,6 @@ function afterRender(){
    INICIALIZAÇÃO
 ============================================================ */
 (async function init(){
-  db = await openDB();
   await seedIfEmpty();
   await loadAll();
   render();
