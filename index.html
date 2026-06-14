@@ -32,12 +32,14 @@ header.topbar{background:var(--primary);color:#fff;padding:18px 16px 6px;positio
 header.topbar h1{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:1.35rem;letter-spacing:.01em;}
 header.topbar .sub{font-size:.7rem;opacity:.7;margin-top:2px;text-transform:uppercase;letter-spacing:.14em;}
 
-.balances{display:flex;gap:8px;padding:12px 16px;overflow-x:auto;}
-.balance-card{flex:1;min-width:118px;background:var(--paper);border-radius:var(--radius);padding:10px 12px;border:1px solid var(--line);}
-.balance-card .label{font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-soft);}
-.balance-card .value{font-family:'Fraunces',Georgia,serif;font-size:1.05rem;font-weight:600;margin-top:3px;}
-.balance-card.total{background:var(--primary);color:#fff;border-color:var(--primary);}
+.balances{display:flex;flex-direction:column;gap:6px;padding:10px 16px 6px;}
+.balance-row{display:flex;gap:6px;}
+.balance-card{flex:1;min-width:0;background:var(--paper);border-radius:var(--radius);padding:7px 10px;border:1px solid var(--line);}
+.balance-card .label{font-size:.6rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft);}
+.balance-card .value{font-family:'Fraunces',Georgia,serif;font-size:.92rem;font-weight:600;margin-top:1px;}
+.balance-card.total{background:var(--primary);color:#fff;border-color:var(--primary);padding:9px 12px;}
 .balance-card.total .label{color:rgba(255,255,255,.7);}
+.balance-card.total .value{font-size:1.25rem;}
 .balance-card .value.neg{color:var(--saida);}
 .balance-card.total .value.neg{color:#ffd0c2;}
 
@@ -48,10 +50,16 @@ nav.bottomnav button.active{color:var(--primary);font-weight:700;}
 nav.bottomnav .icon{font-size:1.25rem;}
 
 .card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin-bottom:12px;}
+.card.compact{padding:10px 12px;margin-bottom:8px;}
 h2.section-title{font-family:'Fraunces',Georgia,serif;font-size:1.05rem;margin-bottom:10px;color:var(--primary);}
+.card.compact h2.section-title{font-size:.85rem;margin-bottom:6px;letter-spacing:.02em;}
 h2.section-title small{display:block;font-family:'Inter',sans-serif;font-size:.65rem;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.12em;font-weight:600;margin-top:2px;}
 
 label{display:block;font-size:.7rem;color:var(--ink-soft);margin:10px 0 4px;text-transform:uppercase;letter-spacing:.07em;font-weight:600;}
+.compact-form label{margin:6px 0 3px;font-size:.62rem;}
+.compact-form input,.compact-form select{padding:7px 10px;font-size:.88rem;}
+.compact-form .btn-row{margin-top:8px;}
+.compact-form .btn{padding:9px;font-size:.85rem;}
 input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font-size:1rem;background:#fff;font-family:inherit;color:var(--ink);}
 input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);border-color:var(--accent);}
 
@@ -68,12 +76,12 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);border-c
 .btn-row{display:flex;gap:8px;margin-top:14px;}
 .btn-row .btn{margin-top:0;flex:1;}
 
-.lancamento-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);gap:10px;cursor:pointer;}
+.lancamento-item{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);gap:10px;cursor:pointer;}
 .lancamento-item:last-child{border-bottom:none;}
 .lancamento-item .info{flex:1;min-width:0;}
-.lancamento-item .hist{font-weight:600;font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.lancamento-item .meta{font-size:.7rem;color:var(--ink-soft);margin-top:2px;}
-.lancamento-item .valor{font-family:'Fraunces',Georgia,serif;font-weight:700;font-size:.95rem;white-space:nowrap;}
+.lancamento-item .hist{font-weight:600;font-size:.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.lancamento-item .meta{font-size:.66rem;color:var(--ink-soft);margin-top:1px;}
+.lancamento-item .valor{font-family:'Fraunces',Georgia,serif;font-weight:700;font-size:.88rem;white-space:nowrap;}
 .valor.entrada{color:var(--entrada);}
 .valor.saida{color:var(--saida);}
 
@@ -110,6 +118,18 @@ table.report tr.saldo-row td{font-weight:700;background:#FBF8F0;}
 .summary-row{display:flex;justify-content:space-between;font-size:.85rem;padding:4px 0;}
 .summary-row.bold{font-weight:700;border-top:1px solid var(--line);margin-top:6px;padding-top:8px;}
 
+/* ===== Versão para telas maiores (PC/tablet) - mesma estrutura, só redimensionada ===== */
+@media (min-width:860px){
+  #app{max-width:760px;box-shadow:0 0 0 1px var(--line);}
+  header.topbar{border-radius:0;}
+  .balances{flex-direction:row;}
+  .balance-row{display:contents;}
+  .balance-card.total{flex:1.4;}
+  .balance-card.total .value{font-size:1.7rem;}
+  main{padding:16px 24px 96px;}
+  table.report{font-size:.85rem;}
+}
+
 @media print{
   nav.bottomnav,header.topbar,.no-print{display:none!important;}
   body,#app{background:#fff;max-width:none;}
@@ -137,6 +157,8 @@ table.report tr.saldo-row td{font-weight:700;background:#FBF8F0;}
 <div id="toast" class="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.js"></script>
 <script>
 /* ============================================================
    CONFIGURAÇÃO DO SUPABASE
@@ -198,8 +220,16 @@ function firstDayOfMonthISO(){
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`;
 }
+function nomeMesAno(iso){
+  const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const [y,m] = iso.split('-');
+  return `${meses[parseInt(m,10)-1]} de ${y}`;
+}
 function formatMoeda(v){
   return (v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+}
+function formatMoedaPDF(v){
+  return formatMoeda(v).replace(/\u00A0/g,' ');
 }
 function formatDataBR(iso){
   if(!iso) return '';
@@ -413,7 +443,12 @@ function render(){
 ============================================================ */
 function renderInicio(){
   const total = saldoTotal();
-  let html = '<div class="balances">';
+  let html = `<div class="balances">
+    <div class="balance-card total">
+      <div class="label">Saldo total</div>
+      <div class="value ${total<0?'neg':''}">${formatMoeda(total)}</div>
+    </div>
+    <div class="balance-row">`;
   for(const conta of CONTAS){
     const v = saldoConta(conta);
     html += `<div class="balance-card">
@@ -421,23 +456,64 @@ function renderInicio(){
       <div class="value ${v<0?'neg':''}">${formatMoeda(v)}</div>
     </div>`;
   }
-  html += `<div class="balance-card total">
-    <div class="label">Total</div>
-    <div class="value ${total<0?'neg':''}">${formatMoeda(total)}</div>
+  html += `</div></div>`;
+
+  const busca = state.buscaLancamentos || {q:'', de:'', ate:''};
+  const temBusca = !!(busca.q || busca.de || busca.ate);
+
+  html += `<div class="card compact">
+    <h2 class="section-title">Localizar lançamento</h2>
+    <form id="formBusca" class="compact-form">
+      <label>Histórico ou categoria</label>
+      <input type="text" name="q" placeholder="Ex: dízimo, energia, fulano..." value="${escHtml(busca.q)}">
+      <div class="filters-grid">
+        <div>
+          <label>De</label>
+          <input type="date" name="de" value="${busca.de}">
+        </div>
+        <div>
+          <label>Até</label>
+          <input type="date" name="ate" value="${busca.ate}">
+        </div>
+      </div>
+      <div class="btn-row">
+        <button type="submit" class="btn">Buscar</button>
+        ${temBusca ? `<button type="button" id="btnLimparBusca" class="btn ghost">Limpar</button>` : ''}
+      </div>
+    </form>
   </div>`;
-  html += '</div>';
 
-  const recentes = [...state.lancamentos]
-    .sort((a,b)=> (b.data+b.id).localeCompare(a.data+a.id))
-    .slice(0,12);
-
-  html += `<div class="card">
-    <h2 class="section-title">Últimos lançamentos</h2>`;
-  if(recentes.length === 0){
-    html += `<div class="empty">Nenhum lançamento ainda.<br>Toque em <strong>Lançar</strong> para começar.</div>`;
+  let lista, titulo;
+  if(temBusca){
+    const qLower = (busca.q||'').toLowerCase();
+    lista = state.lancamentos.filter(l=>{
+      if(busca.de && l.data < busca.de) return false;
+      if(busca.ate && l.data > busca.ate) return false;
+      if(qLower && !(l.historico.toLowerCase().includes(qLower) || l.categoria.toLowerCase().includes(qLower))) return false;
+      return true;
+    }).sort((a,b)=> (b.data+String(b.id).padStart(10,'0')).localeCompare(a.data+String(a.id).padStart(10,'0')));
+    titulo = `Resultado da busca <small>${lista.length} lançamento(s) encontrado(s)</small>`;
   } else {
-    for(const l of recentes){
+    const limite = 15;
+    lista = [...state.lancamentos]
+      .sort((a,b)=> b.id - a.id)
+      .slice(0, limite);
+    titulo = `Últimos lançamentos registrados <small>${state.lancamentos.length} no total</small>`;
+  }
+
+  html += `<div class="card compact">
+    <h2 class="section-title">${titulo}</h2>`;
+  if(lista.length === 0){
+    html += temBusca
+      ? `<div class="empty">Nenhum lançamento encontrado para essa busca.</div>`
+      : `<div class="empty">Nenhum lançamento ainda.<br>Toque em <strong>Lançar</strong> para começar.</div>`;
+  } else {
+    const limiteBusca = 150;
+    for(const l of lista.slice(0, limiteBusca)){
       html += lancamentoItemHTML(l);
+    }
+    if(lista.length > limiteBusca){
+      html += `<div class="empty">Mostrando ${limiteBusca} de ${lista.length}. Use a busca para refinar.</div>`;
     }
   }
   html += `</div>`;
@@ -716,6 +792,9 @@ function renderReportArea(){
   html += `<div class="btn-row no-print">
     <button class="btn secondary" id="btnExportarCSV">Exportar CSV</button>
     <button class="btn secondary" id="btnImprimir">Imprimir</button>
+  </div>
+  <div class="btn-row no-print">
+    <button class="btn" id="btnCompartilharPDF">Compartilhar / Salvar PDF</button>
   </div></div>`;
   return html;
 }
@@ -732,6 +811,78 @@ function bindReportButtons(){
   if(btnCSV) btnCSV.addEventListener('click', exportarCSV);
   const btnPrint = document.getElementById('btnImprimir');
   if(btnPrint) btnPrint.addEventListener('click', ()=>window.print());
+  const btnPDF = document.getElementById('btnCompartilharPDF');
+  if(btnPDF) btnPDF.addEventListener('click', compartilharPDF);
+}
+
+function compartilharPDF(){
+  const f = state.reportFilters;
+  const rows = state.reportResult;
+  const anterior = saldoAnterior(f);
+  const totalEntradas = rows.filter(r=>r.tipo==='entrada').reduce((a,r)=>a+r.valor,0);
+  const totalSaidas = rows.filter(r=>r.tipo==='saida').reduce((a,r)=>a+r.valor,0);
+  const atual = anterior + totalEntradas - totalSaidas;
+
+  const doc = new jspdf.jsPDF();
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(14);
+  doc.text('Boletim de Caixa - Igreja', 14, 16);
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(10);
+  doc.text(`Período: ${formatDataBR(f.inicio)} a ${formatDataBR(f.fim)}`, 14, 23);
+  doc.text(`Conta: ${f.conta==='todas'?'Todas as contas':f.conta}`, 14, 28);
+
+  let head, body;
+  if(f.visao === 'detalhado'){
+    head = [['Data','Histórico','Categoria','Conta','Entradas','Saídas']];
+    body = [];
+    body.push(['', 'Saldo anterior', '', '', anterior>=0?formatMoedaPDF(anterior):'', anterior<0?formatMoedaPDF(-anterior):'']);
+    for(const r of rows){
+      body.push([
+        formatDataBR(r.data), r.historico, r.categoria, r.conta,
+        r.tipo==='entrada' ? formatMoedaPDF(r.valor) : '',
+        r.tipo==='saida' ? formatMoedaPDF(r.valor) : ''
+      ]);
+    }
+    body.push(['', 'Total do período', '', '', formatMoedaPDF(totalEntradas), formatMoedaPDF(totalSaidas)]);
+    body.push(['', 'Saldo atual', '', '', atual>=0?formatMoedaPDF(atual):'', atual<0?formatMoedaPDF(-atual):'']);
+  } else {
+    head = [['Categoria','Entradas','Saídas']];
+    const porCategoria = {};
+    for(const r of rows){
+      if(!porCategoria[r.categoria]) porCategoria[r.categoria] = {entrada:0, saida:0};
+      porCategoria[r.categoria][r.tipo] += r.valor;
+    }
+    body = Object.keys(porCategoria).sort((a,b)=>a.localeCompare(b,'pt-BR')).map(cat=>{
+      const v = porCategoria[cat];
+      return [cat, v.entrada?formatMoedaPDF(v.entrada):'—', v.saida?formatMoedaPDF(v.saida):'—'];
+    });
+    body.push(['Total', formatMoedaPDF(totalEntradas), formatMoedaPDF(totalSaidas)]);
+    body.push(['Saldo anterior', formatMoedaPDF(anterior), '']);
+    body.push(['Saldo atual', formatMoedaPDF(atual), '']);
+  }
+
+  doc.autoTable({
+    head, body, startY: 33, styles:{fontSize:8}, headStyles:{fillColor:[31,71,52]}
+  });
+
+  const filename = `boletim_${f.inicio}_a_${f.fim}.pdf`;
+
+  if(navigator.canShare && navigator.share){
+    const blob = doc.output('blob');
+    const file = new File([blob], filename, {type:'application/pdf'});
+    if(navigator.canShare({files:[file]})){
+      navigator.share({
+        files:[file],
+        title:'Boletim de Caixa',
+        text:`Boletim de Caixa - ${formatDataBR(f.inicio)} a ${formatDataBR(f.fim)}`
+      }).catch(err=>{
+        if(err.name !== 'AbortError') doc.save(filename);
+      });
+      return;
+    }
+  }
+  doc.save(filename);
 }
 
 function exportarCSV(){
@@ -1020,6 +1171,20 @@ function afterRender(){
     document.querySelectorAll('[data-action="editar-lancamento"]').forEach(el=>{
       el.addEventListener('click', ()=>abrirModalEditarLancamento(Number(el.dataset.id)));
     });
+    const formBusca = document.getElementById('formBusca');
+    formBusca.addEventListener('submit', (e)=>{
+      e.preventDefault();
+      const fd = new FormData(formBusca);
+      state.buscaLancamentos = { q: fd.get('q').trim(), de: fd.get('de'), ate: fd.get('ate') };
+      render();
+    });
+    const btnLimpar = document.getElementById('btnLimparBusca');
+    if(btnLimpar){
+      btnLimpar.addEventListener('click', ()=>{
+        state.buscaLancamentos = {q:'', de:'', ate:''};
+        render();
+      });
+    }
   }
 
   if(state.tab === 'lancar'){
