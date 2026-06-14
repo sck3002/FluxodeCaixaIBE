@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1F4734">
+<title>Finanças da Igreja</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F5F1E8;
+  --paper:#FFFFFF;
+  --ink:#2B2A26;
+  --ink-soft:#7A746A;
+  --primary:#1F4734;
+  --primary-light:#3A6B53;
+  --accent:#C28E2C;
+  --entrada:#2F7D5C;
+  --saida:#A6432F;
+  --line:#E4DECB;
+  --radius:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--ink);}
+body{-webkit-tap-highlight-color:transparent;}
+#app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;background:var(--bg);}
+
+header.topbar{background:var(--primary);color:#fff;padding:18px 16px 6px;position:sticky;top:0;z-index:10;}
+header.topbar h1{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:1.35rem;letter-spacing:.01em;}
+header.topbar .sub{font-size:.7rem;opacity:.7;margin-top:2px;text-transform:uppercase;letter-spacing:.14em;}
+
+.balances{display:flex;gap:8px;padding:12px 16px;overflow-x:auto;}
+.balance-card{flex:1;min-width:118px;background:var(--paper);border-radius:var(--radius);padding:10px 12px;border:1px solid var(--line);}
+.balance-card .label{font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-soft);}
+.balance-card .value{font-family:'Fraunces',Georgia,serif;font-size:1.05rem;font-weight:600;margin-top:3px;}
+.balance-card.total{background:var(--primary);color:#fff;border-color:var(--primary);}
+.balance-card.total .label{color:rgba(255,255,255,.7);}
+.balance-card .value.neg{color:var(--saida);}
+.balance-card.total .value.neg{color:#ffd0c2;}
+
+main{flex:1;padding:12px 16px 96px;}
+nav.bottomnav{position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;background:var(--paper);border-top:1px solid var(--line);display:flex;z-index:20;padding-bottom:env(safe-area-inset-bottom);}
+nav.bottomnav button{flex:1;background:none;border:none;padding:10px 4px 8px;font-size:.62rem;color:var(--ink-soft);display:flex;flex-direction:column;align-items:center;gap:3px;font-family:inherit;cursor:pointer;}
+nav.bottomnav button.active{color:var(--primary);font-weight:700;}
+nav.bottomnav .icon{font-size:1.25rem;}
+
+.card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin-bottom:12px;}
+h2.section-title{font-family:'Fraunces',Georgia,serif;font-size:1.05rem;margin-bottom:10px;color:var(--primary);}
+h2.section-title small{display:block;font-family:'Inter',sans-serif;font-size:.65rem;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.12em;font-weight:600;margin-top:2px;}
+
+label{display:block;font-size:.7rem;color:var(--ink-soft);margin:10px 0 4px;text-transform:uppercase;letter-spacing:.07em;font-weight:600;}
+input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font-size:1rem;background:#fff;font-family:inherit;color:var(--ink);}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);border-color:var(--accent);}
+
+.segmented{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-top:4px;}
+.segmented button{flex:1;padding:10px 4px;border:none;background:#fff;font-family:inherit;font-size:.82rem;font-weight:700;color:var(--ink-soft);cursor:pointer;border-right:1px solid var(--line);}
+.segmented button:last-child{border-right:none;}
+.segmented button.active{background:var(--primary);color:#fff;}
+
+.btn{display:block;width:100%;padding:12px;border:none;border-radius:10px;background:var(--primary);color:#fff;font-size:.95rem;font-weight:700;font-family:inherit;margin-top:14px;cursor:pointer;text-align:center;}
+.btn.secondary{background:transparent;color:var(--primary);border:1px solid var(--primary);}
+.btn.danger{background:var(--saida);}
+.btn.ghost{background:transparent;color:var(--ink-soft);border:1px solid var(--line);}
+.btn.small{padding:8px 10px;font-size:.78rem;margin-top:0;width:auto;display:inline-block;}
+.btn-row{display:flex;gap:8px;margin-top:14px;}
+.btn-row .btn{margin-top:0;flex:1;}
+
+.lancamento-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);gap:10px;cursor:pointer;}
+.lancamento-item:last-child{border-bottom:none;}
+.lancamento-item .info{flex:1;min-width:0;}
+.lancamento-item .hist{font-weight:600;font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.lancamento-item .meta{font-size:.7rem;color:var(--ink-soft);margin-top:2px;}
+.lancamento-item .valor{font-family:'Fraunces',Georgia,serif;font-weight:700;font-size:.95rem;white-space:nowrap;}
+.valor.entrada{color:var(--entrada);}
+.valor.saida{color:var(--saida);}
+
+.empty{text-align:center;color:var(--ink-soft);padding:30px 10px;font-size:.88rem;line-height:1.5;}
+
+.modal-overlay{position:fixed;inset:0;background:rgba(43,42,38,.45);display:flex;align-items:flex-end;justify-content:center;z-index:50;}
+.modal{background:var(--paper);width:100%;max-width:480px;border-radius:18px 18px 0 0;padding:18px 16px 28px;max-height:88vh;overflow-y:auto;}
+.modal h3{font-family:'Fraunces',Georgia,serif;color:var(--primary);margin-bottom:4px;font-size:1.1rem;}
+.modal .note{font-size:.75rem;color:var(--ink-soft);margin-top:8px;line-height:1.4;}
+
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:20px;font-size:.85rem;z-index:60;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;}
+.toast.show{opacity:1;}
+
+table.report{width:100%;border-collapse:collapse;font-size:.78rem;}
+table.report th,table.report td{padding:6px 4px;border-bottom:1px solid var(--line);text-align:left;}
+table.report th{font-size:.62rem;text-transform:uppercase;color:var(--ink-soft);letter-spacing:.04em;}
+table.report td.num,table.report th.num{text-align:right;font-family:'Fraunces',Georgia,serif;}
+table.report tr.total-row td{font-weight:700;border-top:2px solid var(--ink);border-bottom:none;}
+table.report tr.saldo-row td{font-weight:700;background:#FBF8F0;}
+.table-wrap{overflow-x:auto;}
+
+.filters-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 10px;}
+
+.category-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);gap:8px;}
+.category-row:last-child{border-bottom:none;}
+.category-row .name{flex:1;font-size:.9rem;font-weight:500;}
+.tag{font-size:.62rem;padding:3px 9px;border-radius:20px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;white-space:nowrap;}
+.tag.entrada{background:rgba(47,125,92,.13);color:var(--entrada);}
+.tag.saida{background:rgba(166,67,47,.13);color:var(--saida);}
+.tag.ambos{background:rgba(194,142,44,.16);color:var(--accent);}
+
+.icon-btn{background:none;border:none;font-size:1rem;color:var(--ink-soft);cursor:pointer;padding:4px;}
+
+.summary-row{display:flex;justify-content:space-between;font-size:.85rem;padding:4px 0;}
+.summary-row.bold{font-weight:700;border-top:1px solid var(--line);margin-top:6px;padding-top:8px;}
+
+@media print{
+  nav.bottomnav,header.topbar,.no-print{display:none!important;}
+  body,#app{background:#fff;max-width:none;}
+  main{padding:0;}
+  .card{border:none;padding:0;}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <h1 id="pageTitle">Finanças da Igreja</h1>
+    <div class="sub" id="pageSub">Controle de caixa, banco e adiantamento</div>
+  </header>
+  <main id="main"></main>
+  <nav class="bottomnav no-print">
+    <button data-tab="inicio"><span class="icon">🏠</span>Início</button>
+    <button data-tab="lancar"><span class="icon">➕</span>Lançar</button>
+    <button data-tab="relatorios"><span class="icon">📊</span>Relatórios</button>
+    <button data-tab="categorias"><span class="icon">🏷️</span>Categorias</button>
+    <button data-tab="config"><span class="icon">⚙️</span>Config</button>
+  </nav>
+</div>
+<div id="modalRoot"></div>
+<div id="toast" class="toast"></div>
+
+<script>
+/* ============================================================
+   CONSTANTES E ESTADO
+============================================================ */
+const CONTAS = ['Caixa','Banco','Adiantamento'];
+const CAT_TRANSFER = 'Transferência entre Contas';
+
+const DEFAULT_CATEGORIAS = [
+  {nome:'Dízimos', tipo:'entrada'},
+  {nome:'Ofertas', tipo:'entrada'},
+  {nome:'Ofertas Especiais / Doações', tipo:'entrada'},
+  {nome:'Outras Receitas', tipo:'entrada'},
+  {nome:'Salário Pastor', tipo:'saida'},
+  {nome:'Ajuda de Custo - Pastor', tipo:'saida'},
+  {nome:'Salário Zeladora', tipo:'saida'},
+  {nome:'Energia Elétrica', tipo:'saida'},
+  {nome:'Água', tipo:'saida'},
+  {nome:'Internet', tipo:'saida'},
+  {nome:'Manutenção do Templo', tipo:'saida'},
+  {nome:'Material de Limpeza', tipo:'saida'},
+  {nome:'Material de Escritório', tipo:'saida'},
+  {nome:'Material para Ministérios', tipo:'saida'},
+  {nome:'Material de Construção', tipo:'saida'},
+  {nome:'Aluguel / Locação', tipo:'saida'},
+  {nome:'Oferta a Pregadores / Visitantes', tipo:'saida'},
+  {nome:'Eventos e Cultos Especiais', tipo:'saida'},
+  {nome:'Despesas Diversas', tipo:'saida'},
+  {nome:CAT_TRANSFER, tipo:'ambos'}
+];
+
+let db = null;
+let state = {
+  tab: 'inicio',
+  lancamentos: [],
+  categorias: [],
+  config: { saldosIniciais:{Caixa:0,Banco:0,Adiantamento:0}, dataBase: todayISO() },
+  lancarTipo: 'entrada',
+  reportFilters: null,
+  reportResult: null,
+};
+
+/* ============================================================
+   UTILITÁRIOS
+============================================================ */
+function todayISO(){
+  const d = new Date();
+  const tz = d.getTimezoneOffset()*60000;
+  return new Date(d - tz).toISOString().slice(0,10);
+}
+function firstDayOfMonthISO(){
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`;
+}
+function formatMoeda(v){
+  return (v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+}
+function formatDataBR(iso){
+  if(!iso) return '';
+  const [y,m,d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+function parseValor(str){
+  str = String(str||'').trim();
+  if(str === '') return 0;
+  if(str.includes(',')){
+    str = str.replace(/\./g,'').replace(',', '.');
+  }
+  const v = parseFloat(str);
+  return isNaN(v) ? 0 : v;
+}
+function escHtml(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function showToast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(()=>el.classList.remove('show'), 2200);
+}
+function downloadFile(content, filename, mime){
+  const blob = new Blob([content], {type:mime});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+}
+function csvNum(v){
+  return (v||0).toFixed(2).replace('.', ',');
+}
+function toCSV(rows){
+  const BOM = '\uFEFF';
+  return BOM + rows.map(r=>r.map(c=>{
+    c = (c===null||c===undefined)?'':String(c);
+    if(c.includes(';')||c.includes('"')||c.includes('\n')){
+      c = '"'+c.replace(/"/g,'""')+'"';
+    }
+    return c;
+  }).join(';')).join('\r\n');
+}
+
+/* ============================================================
+   BANCO DE DADOS (IndexedDB - local ao dispositivo)
+============================================================ */
+function openDB(){
+  return new Promise((resolve,reject)=>{
+    const req = indexedDB.open('igrejaFinancasDB', 1);
+    req.onupgradeneeded = (e)=>{
+      const d = e.target.result;
+      if(!d.objectStoreNames.contains('lancamentos')){
+        const s = d.createObjectStore('lancamentos',{keyPath:'id',autoIncrement:true});
+        s.createIndex('data','data');
+        s.createIndex('conta','conta');
+        s.createIndex('categoria','categoria');
+      }
+      if(!d.objectStoreNames.contains('categorias')){
+        d.createObjectStore('categorias',{keyPath:'id',autoIncrement:true});
+      }
+      if(!d.objectStoreNames.contains('config')){
+        d.createObjectStore('config',{keyPath:'key'});
+      }
+    };
+    req.onsuccess = (e)=>resolve(e.target.result);
+    req.onerror = (e)=>reject(e.target.error);
+  });
+}
+function tx(storeName, mode){
+  return db.transaction(storeName, mode).objectStore(storeName);
+}
+function dbGetAll(storeName){
+  return new Promise((resolve,reject)=>{
+    const req = tx(storeName,'readonly').getAll();
+    req.onsuccess = ()=>resolve(req.result);
+    req.onerror = ()=>reject(req.error);
+  });
+}
+function dbAdd(storeName, obj){
+  return new Promise((resolve,reject)=>{
+    const req = tx(storeName,'readwrite').add(obj);
+    req.onsuccess = ()=>resolve(req.result);
+    req.onerror = ()=>reject(req.error);
+  });
+}
+function dbPut(storeName, obj){
+  return new Promise((resolve,reject)=>{
+    const req = tx(storeName,'readwrite').put(obj);
+    req.onsuccess = ()=>resolve(req.result);
+    req.onerror = ()=>reject(req.error);
+  });
+}
+function dbDelete(storeName, key){
+  return new Promise((resolve,reject)=>{
+    const req = tx(storeName,'readwrite').delete(key);
+    req.onsuccess = ()=>resolve();
+    req.onerror = ()=>reject(req.error);
+  });
+}
+function dbClear(storeName){
+  return new Promise((resolve,reject)=>{
+    const req = tx(storeName,'readwrite').clear();
+    req.onsuccess = ()=>resolve();
+    req.onerror = ()=>reject(req.error);
+  });
+}
+
+async function loadAll(){
+  state.lancamentos = await dbGetAll('lancamentos');
+  state.categorias = await dbGetAll('categorias');
+  const cfg = await dbGetAll('config');
+  const saldosCfg = cfg.find(c=>c.key==='saldosIniciais');
+  if(saldosCfg){
+    state.config.saldosIniciais = saldosCfg.saldos;
+    state.config.dataBase = saldosCfg.dataBase;
+  }
+}
+
+async function seedIfEmpty(){
+  const cats = await dbGetAll('categorias');
+  if(cats.length === 0){
+    for(const c of DEFAULT_CATEGORIAS){
+      await dbAdd('categorias', c);
+    }
+  }
+  const cfg = await dbGetAll('config');
+  if(!cfg.find(c=>c.key==='saldosIniciais')){
+    await dbPut('config', {key:'saldosIniciais', saldos:{Caixa:0,Banco:0,Adiantamento:0}, dataBase: todayISO()});
+  }
+}
+
+/* ============================================================
+   CÁLCULOS
+============================================================ */
+function saldoConta(conta){
+  const inicial = state.config.saldosIniciais[conta] || 0;
+  let mov = 0;
+  for(const l of state.lancamentos){
+    if(l.conta === conta){
+      mov += (l.tipo === 'entrada' ? l.valor : -l.valor);
+    }
+  }
+  return inicial + mov;
+}
+function saldoTotal(){
+  return CONTAS.reduce((acc,c)=>acc + saldoConta(c), 0);
+}
+
+/* ============================================================
+   ROTEAMENTO / RENDER
+============================================================ */
+function setTab(tab){
+  state.tab = tab;
+  render();
+}
+function render(){
+  document.querySelectorAll('nav.bottomnav button').forEach(b=>{
+    b.classList.toggle('active', b.dataset.tab === state.tab);
+  });
+  const main = document.getElementById('main');
+  const titles = {
+    inicio:['Finanças da Igreja','Controle de caixa, banco e adiantamento'],
+    lancar:['Novo Lançamento','Registrar entrada, saída ou transferência'],
+    relatorios:['Relatórios','Detalhado ou consolidado por período'],
+    categorias:['Categorias','Padronização para os relatórios'],
+    config:['Configurações','Saldos iniciais e backup local'],
+  };
+  document.getElementById('pageTitle').textContent = titles[state.tab][0];
+  document.getElementById('pageSub').textContent = titles[state.tab][1];
+
+  switch(state.tab){
+    case 'inicio': main.innerHTML = renderInicio(); break;
+    case 'lancar': main.innerHTML = renderLancar(); break;
+    case 'relatorios': main.innerHTML = renderRelatorios(); break;
+    case 'categorias': main.innerHTML = renderCategorias(); break;
+    case 'config': main.innerHTML = renderConfig(); break;
+  }
+  afterRender();
+}
+
+/* ============================================================
+   TELA: INÍCIO
+============================================================ */
+function renderInicio(){
+  const total = saldoTotal();
+  let html = '<div class="balances">';
+  for(const conta of CONTAS){
+    const v = saldoConta(conta);
+    html += `<div class="balance-card">
+      <div class="label">${conta}</div>
+      <div class="value ${v<0?'neg':''}">${formatMoeda(v)}</div>
+    </div>`;
+  }
+  html += `<div class="balance-card total">
+    <div class="label">Total</div>
+    <div class="value ${total<0?'neg':''}">${formatMoeda(total)}</div>
+  </div>`;
+  html += '</div>';
+
+  const recentes = [...state.lancamentos]
+    .sort((a,b)=> (b.data+b.id).localeCompare(a.data+a.id))
+    .slice(0,12);
+
+  html += `<div class="card">
+    <h2 class="section-title">Últimos lançamentos</h2>`;
+  if(recentes.length === 0){
+    html += `<div class="empty">Nenhum lançamento ainda.<br>Toque em <strong>Lançar</strong> para começar.</div>`;
+  } else {
+    for(const l of recentes){
+      html += lancamentoItemHTML(l);
+    }
+  }
+  html += `</div>`;
+  return html;
+}
+
+function lancamentoItemHTML(l){
+  const sinal = l.tipo === 'entrada' ? '+' : '−';
+  return `<div class="lancamento-item" data-action="editar-lancamento" data-id="${l.id}">
+    <div class="info">
+      <div class="hist">${escHtml(l.historico)}</div>
+      <div class="meta">${formatDataBR(l.data)} · ${escHtml(l.categoria)} · ${escHtml(l.conta)}</div>
+    </div>
+    <div class="valor ${l.tipo}">${sinal} ${formatMoeda(l.valor)}</div>
+  </div>`;
+}
+
+/* ============================================================
+   TELA: LANÇAR
+============================================================ */
+function categoriasParaTipo(tipo){
+  return state.categorias.filter(c => c.tipo === tipo).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+}
+
+function renderLancar(){
+  const tipo = state.lancarTipo || 'entrada';
+  let html = `<div class="card">
+    <h2 class="section-title">Tipo de lançamento</h2>
+    <div class="segmented" id="tipoSegmented">
+      <button type="button" data-lancar-tipo="entrada" class="${tipo==='entrada'?'active':''}">Entrada</button>
+      <button type="button" data-lancar-tipo="saida" class="${tipo==='saida'?'active':''}">Saída</button>
+      <button type="button" data-lancar-tipo="transferencia" class="${tipo==='transferencia'?'active':''}">Transferência</button>
+    </div>
+
+    <form id="formLancar">
+      <label>Data</label>
+      <input type="date" name="data" value="${todayISO()}" required>
+
+      <label>Histórico</label>
+      <input type="text" name="historico" placeholder="Ex: Dízimo do dia, Conta de energia..." required>
+  `;
+
+  if(tipo === 'transferencia'){
+    html += `
+      <label>Conta de origem</label>
+      <select name="contaOrigem" required>
+        ${CONTAS.map(c=>`<option value="${c}">${c}</option>`).join('')}
+      </select>
+
+      <label>Conta de destino</label>
+      <select name="contaDestino" required>
+        ${CONTAS.map((c,i)=>`<option value="${c}" ${i===1?'selected':''}>${c}</option>`).join('')}
+      </select>
+    `;
+  } else {
+    const cats = categoriasParaTipo(tipo);
+    html += `
+      <label>Categoria</label>
+      <select name="categoria" required>
+        ${cats.map(c=>`<option value="${escHtml(c.nome)}">${escHtml(c.nome)}</option>`).join('')}
+      </select>
+      ${cats.length===0 ? `<div style="font-size:.75rem;color:var(--ink-soft);margin-top:6px;">Nenhuma categoria de ${tipo==='entrada'?'entrada':'saída'} cadastrada. Cadastre em "Categorias".</div>` : ''}
+
+      <label>Conta corrente</label>
+      <select name="conta" required>
+        ${CONTAS.map(c=>`<option value="${c}">${c}</option>`).join('')}
+      </select>
+    `;
+  }
+
+  html += `
+      <label>Valor (R$)</label>
+      <input type="text" inputmode="decimal" name="valor" placeholder="0,00" required>
+
+      <button type="submit" class="btn">Salvar lançamento</button>
+    </form>
+  </div>`;
+
+  return html;
+}
+
+async function handleSalvarLancamento(form){
+  const tipo = state.lancarTipo || 'entrada';
+  const data = form.data.value;
+  const historico = form.historico.value.trim();
+  const valor = parseValor(form.valor.value);
+
+  if(!data || !historico || valor <= 0){
+    showToast('Preencha data, histórico e um valor maior que zero.');
+    return;
+  }
+
+  if(tipo === 'transferencia'){
+    const origem = form.contaOrigem.value;
+    const destino = form.contaDestino.value;
+    if(origem === destino){
+      showToast('Escolha contas de origem e destino diferentes.');
+      return;
+    }
+    const grupo = Date.now();
+    await dbAdd('lancamentos', {
+      data, historico, categoria: CAT_TRANSFER, conta: origem, tipo:'saida', valor, transferGroup: grupo
+    });
+    await dbAdd('lancamentos', {
+      data, historico, categoria: CAT_TRANSFER, conta: destino, tipo:'entrada', valor, transferGroup: grupo
+    });
+    showToast('Transferência registrada.');
+  } else {
+    const categoria = form.categoria.value;
+    const conta = form.conta.value;
+    if(!categoria){
+      showToast('Cadastre uma categoria antes de lançar.');
+      return;
+    }
+    await dbAdd('lancamentos', { data, historico, categoria, conta, tipo, valor });
+    showToast(tipo==='entrada' ? 'Entrada registrada.' : 'Saída registrada.');
+  }
+
+  await loadAll();
+  // manter o formulário pronto para o próximo lançamento, preservando data
+  const dataAtual = data;
+  render();
+  const inp = document.querySelector('#formLancar input[name="data"]');
+  if(inp) inp.value = dataAtual;
+}
+
+/* ============================================================
+   TELA: RELATÓRIOS
+============================================================ */
+function defaultFilters(){
+  return {
+    inicio: firstDayOfMonthISO(),
+    fim: todayISO(),
+    conta: 'todas',
+    tipo: 'todas',
+    categoria: 'todas',
+    visao: 'detalhado'
+  };
+}
+
+function renderRelatorios(){
+  const f = state.reportFilters || defaultFilters();
+  state.reportFilters = f;
+
+  let html = `<div class="card">
+    <h2 class="section-title">Filtros</h2>
+    <form id="formFiltros">
+      <div class="filters-grid">
+        <div>
+          <label>De</label>
+          <input type="date" name="inicio" value="${f.inicio}">
+        </div>
+        <div>
+          <label>Até</label>
+          <input type="date" name="fim" value="${f.fim}">
+        </div>
+      </div>
+
+      <label>Conta</label>
+      <select name="conta">
+        <option value="todas" ${f.conta==='todas'?'selected':''}>Todas as contas</option>
+        ${CONTAS.map(c=>`<option value="${c}" ${f.conta===c?'selected':''}>${c}</option>`).join('')}
+      </select>
+
+      <label>Tipo</label>
+      <select name="tipo">
+        <option value="todas" ${f.tipo==='todas'?'selected':''}>Entradas e saídas</option>
+        <option value="entrada" ${f.tipo==='entrada'?'selected':''}>Somente entradas</option>
+        <option value="saida" ${f.tipo==='saida'?'selected':''}>Somente saídas</option>
+      </select>
+
+      <label>Categoria</label>
+      <select name="categoria">
+        <option value="todas" ${f.categoria==='todas'?'selected':''}>Todas as categorias</option>
+        ${[...state.categorias].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR')).map(c=>`<option value="${escHtml(c.nome)}" ${f.categoria===c.nome?'selected':''}>${escHtml(c.nome)}</option>`).join('')}
+      </select>
+
+      <label>Visão</label>
+      <div class="segmented">
+        <button type="button" data-visao="detalhado" class="${f.visao==='detalhado'?'active':''}">Detalhado</button>
+        <button type="button" data-visao="consolidado" class="${f.visao==='consolidado'?'active':''}">Consolidado</button>
+      </div>
+
+      <button type="submit" class="btn">Gerar relatório</button>
+    </form>
+  </div>`;
+
+  html += `<div id="reportArea">${renderReportArea()}</div>`;
+  return html;
+}
+
+function getFilteredLancamentos(f){
+  return state.lancamentos.filter(l=>{
+    if(l.data < f.inicio || l.data > f.fim) return false;
+    if(f.conta !== 'todas' && l.conta !== f.conta) return false;
+    if(f.tipo !== 'todas' && l.tipo !== f.tipo) return false;
+    if(f.categoria !== 'todas' && l.categoria !== f.categoria) return false;
+    return true;
+  }).sort((a,b)=> (a.data+String(a.id).padStart(10,'0')).localeCompare(b.data+String(b.id).padStart(10,'0')));
+}
+
+function saldoAnterior(f){
+  // soma saldos iniciais das contas consideradas + movimentos anteriores ao período
+  const contas = f.conta === 'todas' ? CONTAS : [f.conta];
+  let saldo = contas.reduce((acc,c)=>acc + (state.config.saldosIniciais[c]||0), 0);
+  for(const l of state.lancamentos){
+    if(!contas.includes(l.conta)) continue;
+    if(l.data < f.inicio){
+      saldo += (l.tipo==='entrada' ? l.valor : -l.valor);
+    }
+  }
+  return saldo;
+}
+
+function renderReportArea(){
+  const f = state.reportFilters;
+  if(!state.reportResult) return '';
+
+  const rows = state.reportResult;
+  const totalEntradas = rows.filter(r=>r.tipo==='entrada').reduce((a,r)=>a+r.valor,0);
+  const totalSaidas = rows.filter(r=>r.tipo==='saida').reduce((a,r)=>a+r.valor,0);
+  const anterior = saldoAnterior(f);
+  const atual = anterior + totalEntradas - totalSaidas;
+
+  let html = `<div class="card">
+    <h2 class="section-title">Resultado
+      <small>${formatDataBR(f.inicio)} a ${formatDataBR(f.fim)} · ${f.conta==='todas'?'Todas as contas':f.conta}</small>
+    </h2>`;
+
+  if(rows.length === 0){
+    html += `<div class="empty">Nenhum lançamento encontrado para esse filtro.</div></div>`;
+    return html;
+  }
+
+  if(f.visao === 'detalhado'){
+    html += `<div class="table-wrap"><table class="report">
+      <thead><tr>
+        <th>Data</th><th>Histórico</th><th>Categoria</th><th>Conta</th>
+        <th class="num">Entradas</th><th class="num">Saídas</th>
+      </tr></thead><tbody>
+      <tr class="saldo-row"><td colspan="4">Saldo anterior</td><td class="num" colspan="2">${formatMoeda(anterior)}</td></tr>`;
+    for(const r of rows){
+      html += `<tr>
+        <td>${formatDataBR(r.data)}</td>
+        <td>${escHtml(r.historico)}</td>
+        <td>${escHtml(r.categoria)}</td>
+        <td>${escHtml(r.conta)}</td>
+        <td class="num">${r.tipo==='entrada'?formatMoeda(r.valor):''}</td>
+        <td class="num">${r.tipo==='saida'?formatMoeda(r.valor):''}</td>
+      </tr>`;
+    }
+    html += `<tr class="total-row"><td colspan="4">Total do período</td><td class="num">${formatMoeda(totalEntradas)}</td><td class="num">${formatMoeda(totalSaidas)}</td></tr>
+      <tr class="saldo-row"><td colspan="4">Saldo atual</td><td class="num" colspan="2">${formatMoeda(atual)}</td></tr>
+      </tbody></table></div>`;
+  } else {
+    // consolidado por categoria
+    const porCategoria = {};
+    for(const r of rows){
+      if(!porCategoria[r.categoria]) porCategoria[r.categoria] = {entrada:0, saida:0};
+      porCategoria[r.categoria][r.tipo] += r.valor;
+    }
+    const categorias = Object.keys(porCategoria).sort((a,b)=>a.localeCompare(b,'pt-BR'));
+    html += `<div class="table-wrap"><table class="report">
+      <thead><tr><th>Categoria</th><th class="num">Entradas</th><th class="num">Saídas</th></tr></thead><tbody>`;
+    for(const cat of categorias){
+      const v = porCategoria[cat];
+      html += `<tr><td>${escHtml(cat)}</td><td class="num">${v.entrada?formatMoeda(v.entrada):'—'}</td><td class="num">${v.saida?formatMoeda(v.saida):'—'}</td></tr>`;
+    }
+    html += `<tr class="total-row"><td>Total</td><td class="num">${formatMoeda(totalEntradas)}</td><td class="num">${formatMoeda(totalSaidas)}</td></tr>
+      </tbody></table></div>
+      <div class="summary-row"><span>Saldo anterior</span><span>${formatMoeda(anterior)}</span></div>
+      <div class="summary-row"><span>Resultado do período</span><span>${formatMoeda(totalEntradas-totalSaidas)}</span></div>
+      <div class="summary-row bold"><span>Saldo atual</span><span>${formatMoeda(atual)}</span></div>`;
+  }
+
+  html += `<div class="btn-row no-print">
+    <button class="btn secondary" id="btnExportarCSV">Exportar CSV</button>
+    <button class="btn secondary" id="btnImprimir">Imprimir</button>
+  </div></div>`;
+  return html;
+}
+
+function gerarRelatorio(f){
+  state.reportFilters = f;
+  state.reportResult = getFilteredLancamentos(f);
+  document.getElementById('reportArea').innerHTML = renderReportArea();
+  bindReportButtons();
+}
+
+function bindReportButtons(){
+  const btnCSV = document.getElementById('btnExportarCSV');
+  if(btnCSV) btnCSV.addEventListener('click', exportarCSV);
+  const btnPrint = document.getElementById('btnImprimir');
+  if(btnPrint) btnPrint.addEventListener('click', ()=>window.print());
+}
+
+function exportarCSV(){
+  const f = state.reportFilters;
+  const rows = state.reportResult;
+  const anterior = saldoAnterior(f);
+  const totalEntradas = rows.filter(r=>r.tipo==='entrada').reduce((a,r)=>a+r.valor,0);
+  const totalSaidas = rows.filter(r=>r.tipo==='saida').reduce((a,r)=>a+r.valor,0);
+  const atual = anterior + totalEntradas - totalSaidas;
+
+  const out = [];
+  out.push([`BOLETIM DE CAIXA - ${formatDataBR(f.inicio)} a ${formatDataBR(f.fim)} - ${f.conta==='todas'?'TODAS AS CONTAS':f.conta.toUpperCase()}`]);
+  out.push(['DATA','HISTÓRICO','CATEGORIA','CONTA','ENTRADAS R$','SAÍDAS R$']);
+  out.push(['','Saldo Anterior','','','', '']);
+  out[2][4] = ''; out[2][5] = '';
+  out.push(['', 'Saldo Anterior', '', '', csvNum(anterior>=0?anterior:0), csvNum(anterior<0?-anterior:0)]);
+  for(const r of rows){
+    out.push([
+      formatDataBR(r.data),
+      r.historico,
+      r.categoria,
+      r.conta,
+      r.tipo==='entrada' ? csvNum(r.valor) : '',
+      r.tipo==='saida' ? csvNum(r.valor) : ''
+    ]);
+  }
+  out.push(['','Total do Período','','', csvNum(totalEntradas), csvNum(totalSaidas)]);
+  out.push(['','Saldo Atual','','', csvNum(atual>=0?atual:0), csvNum(atual<0?-atual:0)]);
+
+  const csv = toCSV(out);
+  downloadFile(csv, `boletim_${f.inicio}_a_${f.fim}.csv`, 'text/csv;charset=utf-8');
+}
+
+/* ============================================================
+   TELA: CATEGORIAS
+============================================================ */
+function renderCategorias(){
+  const cats = [...state.categorias].sort((a,b)=>{
+    if(a.tipo !== b.tipo) {
+      const ordem = {entrada:0, saida:1, ambos:2};
+      return ordem[a.tipo]-ordem[b.tipo];
+    }
+    return a.nome.localeCompare(b.nome,'pt-BR');
+  });
+
+  let html = `<div class="card">
+    <h2 class="section-title">Nova categoria</h2>
+    <form id="formNovaCategoria">
+      <label>Nome</label>
+      <input type="text" name="nome" placeholder="Ex: Manutenção de Veículo" required>
+      <label>Tipo</label>
+      <select name="tipo">
+        <option value="entrada">Entrada</option>
+        <option value="saida" selected>Saída</option>
+      </select>
+      <button type="submit" class="btn">Adicionar categoria</button>
+    </form>
+  </div>`;
+
+  html += `<div class="card">
+    <h2 class="section-title">Categorias cadastradas <small>${cats.length} no total</small></h2>`;
+  for(const c of cats){
+    const tagLabel = c.tipo==='entrada'?'Entrada':(c.tipo==='saida'?'Saída':'Transferência');
+    const podeEditar = c.nome !== CAT_TRANSFER;
+    html += `<div class="category-row">
+      <span class="name">${escHtml(c.nome)}</span>
+      <span class="tag ${c.tipo}">${tagLabel}</span>
+      ${podeEditar ? `<button class="icon-btn" data-action="editar-categoria" data-id="${c.id}" title="Editar">✏️</button>
+      <button class="icon-btn" data-action="excluir-categoria" data-id="${c.id}" title="Excluir">🗑️</button>` : ''}
+    </div>`;
+  }
+  html += `</div>`;
+  return html;
+}
+
+/* ============================================================
+   TELA: CONFIGURAÇÕES
+============================================================ */
+function renderConfig(){
+  const s = state.config.saldosIniciais;
+  let html = `<div class="card">
+    <h2 class="section-title">Saldos iniciais</h2>
+    <p style="font-size:.8rem;color:var(--ink-soft);margin-bottom:4px;">Informe o saldo de cada conta na data-base abaixo. Os lançamentos feitos a partir dessa data ajustam o saldo automaticamente.</p>
+    <form id="formSaldos">
+      <label>Data-base</label>
+      <input type="date" name="dataBase" value="${state.config.dataBase}">
+      ${CONTAS.map(c=>`
+        <label>${c}</label>
+        <input type="text" inputmode="decimal" name="saldo_${c}" value="${(s[c]||0).toFixed(2).replace('.',',')}">
+      `).join('')}
+      <button type="submit" class="btn">Salvar saldos</button>
+    </form>
+  </div>`;
+
+  html += `<div class="card">
+    <h2 class="section-title">Cópia de segurança <small>Os dados ficam apenas neste dispositivo</small></h2>
+    <p style="font-size:.8rem;color:var(--ink-soft);">Exporte um arquivo de backup periodicamente. Ele pode ser usado para restaurar os dados em outro celular ou navegador.</p>
+    <div class="btn-row">
+      <button class="btn secondary" id="btnBackup">Exportar backup (.json)</button>
+    </div>
+    <label>Restaurar backup</label>
+    <input type="file" id="inputRestaurar" accept="application/json">
+  </div>`;
+
+  html += `<div class="card">
+    <h2 class="section-title">Zona de risco</h2>
+    <button class="btn danger" id="btnLimpar">Apagar todos os dados</button>
+  </div>`;
+
+  return html;
+}
+
+/* ============================================================
+   MODAIS
+============================================================ */
+function openModal(html){
+  document.getElementById('modalRoot').innerHTML = `
+    <div class="modal-overlay" id="modalOverlay">
+      <div class="modal">${html}</div>
+    </div>`;
+  document.getElementById('modalOverlay').addEventListener('click', (e)=>{
+    if(e.target.id === 'modalOverlay') closeModal();
+  });
+}
+function closeModal(){
+  document.getElementById('modalRoot').innerHTML = '';
+}
+
+function abrirModalEditarLancamento(id){
+  const l = state.lancamentos.find(x=>x.id===id);
+  if(!l) return;
+
+  if(l.transferGroup){
+    openModal(`
+      <h3>Transferência</h3>
+      <p class="note">${escHtml(l.historico)}<br>
+      ${formatDataBR(l.data)} · ${escHtml(l.conta)} · ${l.tipo==='saida'?'Saída':'Entrada'} de ${formatMoeda(l.valor)}</p>
+      <p class="note">Este lançamento faz parte de uma transferência entre contas. Para corrigi-lo, exclua a transferência (as duas pontas serão removidas) e lance novamente.</p>
+      <div class="btn-row">
+        <button class="btn ghost" id="btnFecharModal">Fechar</button>
+        <button class="btn danger" id="btnExcluirTransfer" data-grupo="${l.transferGroup}">Excluir transferência</button>
+      </div>
+    `);
+    document.getElementById('btnFecharModal').addEventListener('click', closeModal);
+    document.getElementById('btnExcluirTransfer').addEventListener('click', async ()=>{
+      if(!confirm('Excluir esta transferência (as duas pontas)?')) return;
+      const pares = state.lancamentos.filter(x=>x.transferGroup===l.transferGroup);
+      for(const p of pares) await dbDelete('lancamentos', p.id);
+      await loadAll();
+      closeModal();
+      render();
+      showToast('Transferência excluída.');
+    });
+    return;
+  }
+
+  const cats = categoriasParaTipo(l.tipo);
+  openModal(`
+    <h3>Editar lançamento</h3>
+    <form id="formEditarLancamento">
+      <label>Data</label>
+      <input type="date" name="data" value="${l.data}" required>
+
+      <label>Histórico</label>
+      <input type="text" name="historico" value="${escHtml(l.historico)}" required>
+
+      <label>Tipo</label>
+      <div class="segmented">
+        <button type="button" data-edit-tipo="entrada" class="${l.tipo==='entrada'?'active':''}">Entrada</button>
+        <button type="button" data-edit-tipo="saida" class="${l.tipo==='saida'?'active':''}">Saída</button>
+      </div>
+
+      <label>Categoria</label>
+      <select name="categoria" id="editCategoria" required>
+        ${cats.map(c=>`<option value="${escHtml(c.nome)}" ${c.nome===l.categoria?'selected':''}>${escHtml(c.nome)}</option>`).join('')}
+      </select>
+
+      <label>Conta corrente</label>
+      <select name="conta" required>
+        ${CONTAS.map(c=>`<option value="${c}" ${c===l.conta?'selected':''}>${c}</option>`).join('')}
+      </select>
+
+      <label>Valor (R$)</label>
+      <input type="text" inputmode="decimal" name="valor" value="${l.valor.toFixed(2).replace('.',',')}" required>
+
+      <div class="btn-row">
+        <button type="button" class="btn danger" id="btnExcluirLancamento">Excluir</button>
+        <button type="submit" class="btn">Salvar</button>
+      </div>
+    </form>
+  `);
+
+  let tipoAtual = l.tipo;
+  document.querySelectorAll('[data-edit-tipo]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      tipoAtual = btn.dataset.editTipo;
+      document.querySelectorAll('[data-edit-tipo]').forEach(b=>b.classList.toggle('active', b===btn));
+      const sel = document.getElementById('editCategoria');
+      const novasCats = categoriasParaTipo(tipoAtual);
+      sel.innerHTML = novasCats.map(c=>`<option value="${escHtml(c.nome)}">${escHtml(c.nome)}</option>`).join('');
+    });
+  });
+
+  document.getElementById('btnExcluirLancamento').addEventListener('click', async ()=>{
+    if(!confirm('Excluir este lançamento?')) return;
+    await dbDelete('lancamentos', l.id);
+    await loadAll();
+    closeModal();
+    render();
+    showToast('Lançamento excluído.');
+  });
+
+  document.getElementById('formEditarLancamento').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const form = e.target;
+    const valor = parseValor(form.valor.value);
+    if(valor <= 0){ showToast('Informe um valor maior que zero.'); return; }
+    await dbPut('lancamentos', {
+      id: l.id,
+      data: form.data.value,
+      historico: form.historico.value.trim(),
+      categoria: form.categoria.value,
+      conta: form.conta.value,
+      tipo: tipoAtual,
+      valor
+    });
+    await loadAll();
+    closeModal();
+    render();
+    showToast('Lançamento atualizado.');
+  });
+}
+
+function abrirModalEditarCategoria(id){
+  const c = state.categorias.find(x=>x.id===id);
+  if(!c) return;
+  openModal(`
+    <h3>Editar categoria</h3>
+    <form id="formEditarCategoria">
+      <label>Nome</label>
+      <input type="text" name="nome" value="${escHtml(c.nome)}" required>
+      <label>Tipo</label>
+      <select name="tipo">
+        <option value="entrada" ${c.tipo==='entrada'?'selected':''}>Entrada</option>
+        <option value="saida" ${c.tipo==='saida'?'selected':''}>Saída</option>
+      </select>
+      <div class="btn-row">
+        <button type="button" class="btn ghost" id="btnCancelarCategoria">Cancelar</button>
+        <button type="submit" class="btn">Salvar</button>
+      </div>
+    </form>
+  `);
+  document.getElementById('btnCancelarCategoria').addEventListener('click', closeModal);
+  document.getElementById('formEditarCategoria').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const form = e.target;
+    const novoNome = form.nome.value.trim();
+    if(!novoNome){ showToast('Informe um nome.'); return; }
+    const nomeAntigo = c.nome;
+    await dbPut('categorias', {id:c.id, nome:novoNome, tipo:form.tipo.value});
+    // atualiza lançamentos existentes com o nome antigo
+    if(nomeAntigo !== novoNome){
+      const afetados = state.lancamentos.filter(l=>l.categoria===nomeAntigo);
+      for(const l of afetados){
+        l.categoria = novoNome;
+        await dbPut('lancamentos', l);
+      }
+    }
+    await loadAll();
+    closeModal();
+    render();
+    showToast('Categoria atualizada.');
+  });
+}
+
+/* ============================================================
+   EVENTOS
+============================================================ */
+function afterRender(){
+  // navegação
+  document.querySelectorAll('nav.bottomnav button').forEach(b=>{
+    b.onclick = ()=>setTab(b.dataset.tab);
+  });
+
+  if(state.tab === 'inicio'){
+    document.querySelectorAll('[data-action="editar-lancamento"]').forEach(el=>{
+      el.addEventListener('click', ()=>abrirModalEditarLancamento(Number(el.dataset.id)));
+    });
+  }
+
+  if(state.tab === 'lancar'){
+    document.querySelectorAll('[data-lancar-tipo]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        state.lancarTipo = btn.dataset.lancarTipo;
+        render();
+      });
+    });
+    const form = document.getElementById('formLancar');
+    if(form){
+      form.addEventListener('submit', (e)=>{
+        e.preventDefault();
+        handleSalvarLancamento(form);
+      });
+    }
+  }
+
+  if(state.tab === 'relatorios'){
+    document.querySelectorAll('[data-visao]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const f = state.reportFilters || defaultFilters();
+        f.visao = btn.dataset.visao;
+        state.reportFilters = f;
+        document.querySelectorAll('[data-visao]').forEach(b=>b.classList.toggle('active', b===btn));
+        if(state.reportResult) gerarRelatorio(f);
+      });
+    });
+    const form = document.getElementById('formFiltros');
+    form.addEventListener('submit', (e)=>{
+      e.preventDefault();
+      const fd = new FormData(form);
+      const f = state.reportFilters || defaultFilters();
+      f.inicio = fd.get('inicio');
+      f.fim = fd.get('fim');
+      f.conta = fd.get('conta');
+      f.tipo = fd.get('tipo');
+      f.categoria = fd.get('categoria');
+      if(!f.inicio || !f.fim || f.inicio > f.fim){
+        showToast('Verifique o período informado.');
+        return;
+      }
+      gerarRelatorio(f);
+    });
+    if(state.reportResult) gerarRelatorio(state.reportFilters);
+  }
+
+  if(state.tab === 'categorias'){
+    document.getElementById('formNovaCategoria').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const form = e.target;
+      const nome = form.nome.value.trim();
+      if(!nome){ showToast('Informe um nome.'); return; }
+      if(state.categorias.some(c=>c.nome.toLowerCase()===nome.toLowerCase())){
+        showToast('Já existe uma categoria com esse nome.');
+        return;
+      }
+      await dbAdd('categorias', {nome, tipo: form.tipo.value});
+      await loadAll();
+      render();
+      showToast('Categoria adicionada.');
+    });
+    document.querySelectorAll('[data-action="editar-categoria"]').forEach(el=>{
+      el.addEventListener('click', ()=>abrirModalEditarCategoria(Number(el.dataset.id)));
+    });
+    document.querySelectorAll('[data-action="excluir-categoria"]').forEach(el=>{
+      el.addEventListener('click', async ()=>{
+        const id = Number(el.dataset.id);
+        const c = state.categorias.find(x=>x.id===id);
+        const usos = state.lancamentos.filter(l=>l.categoria===c.nome).length;
+        let msg = `Excluir a categoria "${c.nome}"?`;
+        if(usos>0) msg += `\n\nAtenção: existem ${usos} lançamento(s) usando essa categoria. Eles continuarão existindo, mas com uma categoria não cadastrada.`;
+        if(!confirm(msg)) return;
+        await dbDelete('categorias', id);
+        await loadAll();
+        render();
+        showToast('Categoria excluída.');
+      });
+    });
+  }
+
+  if(state.tab === 'config'){
+    document.getElementById('formSaldos').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const form = e.target;
+      const saldos = {};
+      for(const c of CONTAS) saldos[c] = parseValor(form[`saldo_${c}`].value);
+      const dataBase = form.dataBase.value;
+      await dbPut('config', {key:'saldosIniciais', saldos, dataBase});
+      await loadAll();
+      render();
+      showToast('Saldos atualizados.');
+    });
+
+    document.getElementById('btnBackup').addEventListener('click', async ()=>{
+      const backup = {
+        versao: 1,
+        exportadoEm: new Date().toISOString(),
+        lancamentos: await dbGetAll('lancamentos'),
+        categorias: await dbGetAll('categorias'),
+        config: await dbGetAll('config'),
+      };
+      downloadFile(JSON.stringify(backup, null, 2), `backup_financas_igreja_${todayISO()}.json`, 'application/json');
+      showToast('Backup exportado.');
+    });
+
+    document.getElementById('inputRestaurar').addEventListener('change', async (e)=>{
+      const file = e.target.files[0];
+      if(!file) return;
+      if(!confirm('Restaurar este backup irá substituir TODOS os dados atuais. Continuar?')) {
+        e.target.value = '';
+        return;
+      }
+      try{
+        const text = await file.text();
+        const backup = JSON.parse(text);
+        await dbClear('lancamentos');
+        await dbClear('categorias');
+        await dbClear('config');
+        for(const l of (backup.lancamentos||[])){ await dbAdd('lancamentos', l); }
+        for(const c of (backup.categorias||[])){ await dbAdd('categorias', c); }
+        for(const cfg of (backup.config||[])){ await dbPut('config', cfg); }
+        await loadAll();
+        render();
+        showToast('Backup restaurado com sucesso.');
+      }catch(err){
+        showToast('Arquivo de backup inválido.');
+      }
+      e.target.value = '';
+    });
+
+    document.getElementById('btnLimpar').addEventListener('click', async ()=>{
+      if(!confirm('Isso vai apagar TODOS os lançamentos, categorias e configurações deste dispositivo. Tem certeza?')) return;
+      if(!confirm('Confirma novamente: apagar tudo permanentemente?')) return;
+      await dbClear('lancamentos');
+      await dbClear('categorias');
+      await dbClear('config');
+      await seedIfEmpty();
+      await loadAll();
+      state.reportResult = null;
+      setTab('inicio');
+      showToast('Todos os dados foram apagados.');
+    });
+  }
+}
+
+/* ============================================================
+   INICIALIZAÇÃO
+============================================================ */
+(async function init(){
+  db = await openDB();
+  await seedIfEmpty();
+  await loadAll();
+  render();
+})();
+</script>
+</body>
+</html>
