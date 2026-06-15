@@ -1,10 +1,10 @@
 // ============================================================
 // Service Worker - Finanças da Igreja
-// IMPORTANTE: sempre que publicar uma nova versão do
-// igreja-financas.html, AUMENTE o número abaixo (v1 -> v2 -> v3...)
+// IMPORTANTE: sempre que publicar uma nova versão do index.html,
+// AUMENTE o número abaixo (v1 -> v2 -> v3...)
 // Nunca diminua o número - isso força o app a baixar a versão nova.
 // ============================================================
-const CACHE_NAME = 'igreja-financas-v2';
+const CACHE_NAME = 'igreja-financas-v3';
 
 const ASSETS = [
   './index.html',
@@ -43,6 +43,28 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Página principal (HTML/navegação): sempre busca a versão mais nova
+  // primeiro na rede. Só usa o cache se estiver sem internet.
+  const isHTML = event.request.mode === 'navigate' ||
+                 event.request.destination === 'document' ||
+                 url.pathname.endsWith('/') ||
+                 url.pathname.endsWith('index.html');
+
+  if (isHTML) {
+    event.respondWith(
+      fetch(event.request).then((response) => {
+        if (response && response.ok) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
+        return response;
+      }).catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // Demais arquivos (ícones, manifest etc.): cache primeiro, com
+  // atualização em segundo plano.
   event.respondWith(
     caches.match(event.request).then((cached) => {
       const fetchPromise = fetch(event.request).then((response) => {
@@ -52,7 +74,6 @@ self.addEventListener('fetch', (event) => {
         }
         return response;
       }).catch(() => cached);
-      // Mostra a versão em cache na hora (se existir) e atualiza em segundo plano
       return cached || fetchPromise;
     })
   );
