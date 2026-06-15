@@ -4,15 +4,15 @@
 // igreja-financas.html, AUMENTE o número abaixo (v1 -> v2 -> v3...)
 // Nunca diminua o número - isso força o app a baixar a versão nova.
 // ============================================================
-const CACHE_NAME = 'igreja-financas-v1';
+const CACHE_NAME = 'igreja-financas-v2';
 
 const ASSETS = [
-  './igreja-financas.html',
+  './index.html',
   './manifest.json',
-  './icons/icon-192.png',
-  './icons/icon-512.png',
-  './icons/apple-touch-icon.png',
-  './icons/favicon.png'
+  './icon-192.png',
+  './icon-512.png',
+  './apple-touch-icon.png',
+  './favicon.png'
 ];
 
 self.addEventListener('install', (event) => {
