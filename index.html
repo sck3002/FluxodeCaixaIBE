@@ -50,7 +50,7 @@ header.topbar .sub{font-size:.7rem;opacity:.7;margin-top:2px;text-transform:uppe
 
 main{flex:1;padding:12px 16px 96px;}
 nav.bottomnav{position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;background:var(--paper);border-top:1px solid var(--line);display:flex;z-index:20;padding-bottom:env(safe-area-inset-bottom);}
-nav.bottomnav button{flex:1;background:none;border:none;padding:10px 4px 8px;font-size:.62rem;color:var(--ink-soft);display:flex;flex-direction:column;align-items:center;gap:3px;font-family:inherit;cursor:pointer;}
+nav.bottomnav button{flex:1;background:none;border:none;padding:8px 2px 7px;font-size:.56rem;color:var(--ink-soft);display:flex;flex-direction:column;align-items:center;gap:2px;font-family:inherit;cursor:pointer;line-height:1.1;text-align:center;}
 nav.bottomnav button.active{color:var(--primary);font-weight:700;}
 nav.bottomnav .icon{font-size:1.25rem;}
 
@@ -86,6 +86,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);border-c
 .lancamento-item .info{flex:1;min-width:0;}
 .lancamento-item .hist{font-weight:600;font-size:.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .lancamento-item .meta{font-size:.66rem;color:var(--ink-soft);margin-top:1px;}
+.lancamento-item .meta.saida{color:var(--saida);font-weight:600;}
 .lancamento-item .valor{font-family:'Fraunces',Georgia,serif;font-weight:700;font-size:.88rem;white-space:nowrap;}
 .valor.entrada{color:var(--entrada);}
 .valor.saida{color:var(--saida);}
@@ -96,6 +97,25 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);border-c
 .modal{background:var(--paper);width:100%;max-width:480px;border-radius:18px 18px 0 0;padding:18px 16px 28px;max-height:88vh;overflow-y:auto;}
 .modal h3{font-family:'Fraunces',Georgia,serif;color:var(--primary);margin-bottom:4px;font-size:1.1rem;}
 .modal .note{font-size:.75rem;color:var(--ink-soft);margin-top:8px;line-height:1.4;}
+
+/* Splash de notificação — tela cheia centrada */
+.splash-overlay{position:fixed;inset:0;background:rgba(10,10,8,.65);display:flex;align-items:center;justify-content:center;z-index:80;padding:16px;}
+.splash{background:var(--paper);width:100%;max-width:460px;border-radius:18px;overflow:hidden;max-height:90vh;display:flex;flex-direction:column;}
+.splash-header{background:var(--primary);color:#fff;padding:18px 18px 14px;}
+.splash-header h2{font-family:'Fraunces',Georgia,serif;font-size:1.2rem;margin-bottom:2px;}
+.splash-header p{font-size:.78rem;opacity:.8;}
+.splash-body{flex:1;overflow-y:auto;padding:12px 14px;}
+.splash-footer{padding:10px 14px 14px;border-top:1px solid var(--line);}
+.splash-section-label{font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;font-weight:700;color:var(--ink-soft);margin:10px 0 4px;}
+.splash-section-label:first-child{margin-top:0;}
+.splash-item{display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border-radius:10px;margin-bottom:4px;cursor:pointer;gap:10px;transition:background .15s;}
+.splash-item:hover,.splash-item:active{background:var(--line);}
+.splash-item.atrasado{background:rgba(166,67,47,.08);}
+.splash-item.hoje{background:rgba(194,142,44,.1);}
+.splash-item.embreve{background:rgba(31,71,52,.07);}
+.splash-item .si-desc{font-size:.88rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.splash-item .si-meta{font-size:.68rem;color:var(--ink-soft);margin-top:1px;}
+.splash-item .si-valor{font-family:'Fraunces',Georgia,serif;font-weight:700;font-size:.92rem;white-space:nowrap;color:var(--saida);}
 
 .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:20px;font-size:.85rem;z-index:60;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;}
 .toast.show{opacity:1;}
@@ -163,12 +183,14 @@ table.report tr.saldo-row td{font-weight:700;background:#FBF8F0;}
   <nav class="bottomnav no-print">
     <button data-tab="inicio"><span class="icon">🏠</span>Início</button>
     <button data-tab="lancar"><span class="icon">➕</span>Lançar</button>
+    <button data-tab="compromissos"><span class="icon">📌</span>Compromissos</button>
     <button data-tab="relatorios"><span class="icon">📊</span>Relatórios</button>
     <button data-tab="categorias"><span class="icon">🏷️</span>Categorias</button>
     <button data-tab="config"><span class="icon">⚙️</span>Config</button>
   </nav>
 </div>
 <div id="modalRoot"></div>
+<div id="splashRoot"></div>
 <div id="toast" class="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -228,8 +250,11 @@ let state = {
   tab: 'inicio',
   lancamentos: [],
   categorias: [],
+  compromissos: [],
+  parcelas: [],
   config: { saldosIniciais:{Caixa:0,Banco:0,Adiantamento:0}, dataBase: todayISO() },
   lancarTipo: 'entrada',
+  compromissoTipo: 'parcelado',
   reportFilters: null,
   reportResult: null,
   session: null,
@@ -253,6 +278,18 @@ function nomeMesAno(iso){
   const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   const [y,m] = iso.split('-');
   return `${meses[parseInt(m,10)-1]} de ${y}`;
+}
+function addDaysISO(iso, n){
+  const d = new Date(iso+'T00:00:00');
+  d.setDate(d.getDate()+n);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function addMonthsISO(iso, n){
+  const [y,m,d] = iso.split('-').map(Number);
+  const ref = new Date(y, (m-1)+n, 1);
+  const lastDay = new Date(ref.getFullYear(), ref.getMonth()+1, 0).getDate();
+  const day = Math.min(d, lastDay);
+  return `${ref.getFullYear()}-${String(ref.getMonth()+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
 }
 function formatMoeda(v){
   return (v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
@@ -311,8 +348,8 @@ function toCSV(rows){
    BANCO DE DADOS (Supabase - mesmo projeto do VanessaDoces,
    tabelas próprias prefixadas com "igreja_")
 ============================================================ */
-const TABLES = { lancamentos:'igreja_lancamentos', categorias:'igreja_categorias', config:'igreja_config' };
-const PK = { lancamentos:'id', categorias:'id', config:'key' };
+const TABLES = { lancamentos:'igreja_lancamentos', categorias:'igreja_categorias', config:'igreja_config', compromissos:'igreja_compromissos', parcelas:'igreja_parcelas' };
+const PK = { lancamentos:'id', categorias:'id', config:'key', compromissos:'id', parcelas:'id' };
 
 function toRow(storeName, obj){
   if(storeName === 'lancamentos'){
@@ -336,6 +373,37 @@ function toRow(storeName, obj){
   if(storeName === 'config'){
     return { key: obj.key, saldos: obj.saldos, data_base: obj.dataBase };
   }
+  if(storeName === 'compromissos'){
+    const row = {
+      descricao: obj.descricao,
+      tipo: obj.tipo,
+      categoria: obj.categoria,
+      conta: obj.conta,
+      valor_previsto: obj.valorPrevisto,
+      valor_variavel: !!obj.valorVariavel,
+      dia_vencimento: obj.diaVencimento ?? null,
+      data_inicio: obj.dataInicio ?? null,
+      num_parcelas: obj.numParcelas ?? null,
+      ativo: obj.ativo !== undefined ? obj.ativo : true,
+      observacoes: obj.observacoes ?? null
+    };
+    if(obj.id !== undefined) row.id = obj.id;
+    return row;
+  }
+  if(storeName === 'parcelas'){
+    const row = {
+      compromisso_id: obj.compromissoId,
+      numero_parcela: obj.numeroParcela ?? null,
+      total_parcelas: obj.totalParcelas ?? null,
+      data_vencimento: obj.dataVencimento,
+      valor_previsto: obj.valorPrevisto,
+      status: obj.status,
+      lancamento_id: obj.lancamentoId ?? null,
+      valor_pago: obj.valorPago ?? null
+    };
+    if(obj.id !== undefined) row.id = obj.id;
+    return row;
+  }
   return obj;
 }
 function fromRow(storeName, row){
@@ -344,6 +412,28 @@ function fromRow(storeName, row){
   }
   if(storeName === 'config'){
     return { ...row, dataBase: row.data_base };
+  }
+  if(storeName === 'compromissos'){
+    return {
+      ...row,
+      valorPrevisto: Number(row.valor_previsto),
+      valorVariavel: row.valor_variavel,
+      diaVencimento: row.dia_vencimento,
+      dataInicio: row.data_inicio,
+      numParcelas: row.num_parcelas
+    };
+  }
+  if(storeName === 'parcelas'){
+    return {
+      ...row,
+      compromissoId: row.compromisso_id,
+      numeroParcela: row.numero_parcela,
+      totalParcelas: row.total_parcelas,
+      dataVencimento: row.data_vencimento,
+      valorPrevisto: Number(row.valor_previsto),
+      lancamentoId: row.lancamento_id,
+      valorPago: row.valor_pago != null ? Number(row.valor_pago) : null
+    };
   }
   return row;
 }
@@ -396,6 +486,8 @@ async function dbClear(storeName){
 async function loadAll(){
   state.lancamentos = await dbGetAll('lancamentos');
   state.categorias = await dbGetAll('categorias');
+  state.compromissos = await dbGetAll('compromissos');
+  state.parcelas = await dbGetAll('parcelas');
   const cfg = await dbGetAll('config');
   const saldosCfg = cfg.find(c=>c.key==='saldosIniciais');
   if(saldosCfg){
@@ -414,6 +506,86 @@ async function seedIfEmpty(){
   const cfg = await dbGetAll('config');
   if(!cfg.find(c=>c.key==='saldosIniciais')){
     await dbPut('config', {key:'saldosIniciais', saldos:{Caixa:0,Banco:0,Adiantamento:0}, dataBase: todayISO()});
+  }
+}
+
+/* ============================================================
+   GERAÇÃO DE PARCELAS (compromissos)
+============================================================ */
+function gerarParcelasIniciais(compromisso, compromissoId){
+  const parcelas = [];
+  if(compromisso.tipo === 'parcelado'){
+    for(let i=1;i<=compromisso.numParcelas;i++){
+      parcelas.push({
+        compromissoId,
+        numeroParcela: i,
+        totalParcelas: compromisso.numParcelas,
+        dataVencimento: addMonthsISO(compromisso.dataInicio, i-1),
+        valorPrevisto: compromisso.valorPrevisto,
+        status: 'pendente'
+      });
+    }
+  } else if(compromisso.tipo === 'avulso'){
+    parcelas.push({
+      compromissoId,
+      numeroParcela: null,
+      totalParcelas: null,
+      dataVencimento: compromisso.dataInicio,
+      valorPrevisto: compromisso.valorPrevisto,
+      status: 'pendente'
+    });
+  } else { // recorrente - gera os próximos 12 vencimentos
+    const hoje = todayISO();
+    const diaHoje = Number(hoje.split('-')[2]);
+    let mesBase = hoje.slice(0,7)+'-01';
+    if(diaHoje > compromisso.diaVencimento) mesBase = addMonthsISO(mesBase, 1);
+    for(let i=0;i<12;i++){
+      const ref = addMonthsISO(mesBase, i);
+      const [yy,mm] = ref.split('-');
+      const lastDay = new Date(Number(yy), Number(mm), 0).getDate();
+      const day = Math.min(compromisso.diaVencimento, lastDay);
+      parcelas.push({
+        compromissoId,
+        numeroParcela: null,
+        totalParcelas: null,
+        dataVencimento: `${yy}-${mm}-${String(day).padStart(2,'0')}`,
+        valorPrevisto: compromisso.valorPrevisto,
+        status: 'pendente'
+      });
+    }
+  }
+  return parcelas;
+}
+
+// Mantém uma janela de ~12 meses de parcelas futuras para compromissos
+// recorrentes ativos (gera novas conforme o tempo passa).
+async function garantirParcelasFuturas(){
+  const horizonte = addMonthsISO(todayISO(), 12);
+  let gerouAlguma = false;
+  for(const c of state.compromissos){
+    if(c.tipo !== 'recorrente' || !c.ativo) continue;
+    const parcelasC = state.parcelas.filter(p=>p.compromissoId===c.id);
+    let maxData = parcelasC.reduce((max,p)=> p.dataVencimento>max?p.dataVencimento:max, '0000-00-00');
+    if(maxData >= horizonte) continue;
+    let ref = addMonthsISO(maxData.slice(0,7)+'-01', 1);
+    while(ref <= horizonte){
+      const [yy,mm] = ref.split('-');
+      const lastDay = new Date(Number(yy), Number(mm), 0).getDate();
+      const day = Math.min(c.diaVencimento, lastDay);
+      await dbAdd('parcelas', {
+        compromissoId: c.id,
+        numeroParcela: null,
+        totalParcelas: null,
+        dataVencimento: `${yy}-${mm}-${String(day).padStart(2,'0')}`,
+        valorPrevisto: c.valorPrevisto,
+        status: 'pendente'
+      });
+      gerouAlguma = true;
+      ref = addMonthsISO(ref, 1);
+    }
+  }
+  if(gerouAlguma){
+    state.parcelas = await dbGetAll('parcelas');
   }
 }
 
@@ -462,6 +634,7 @@ function render(){
   const titles = {
     inicio:['Finanças da Igreja','Controle de caixa, banco e adiantamento'],
     lancar:['Novo Lançamento','Registrar entrada, saída ou transferência'],
+    compromissos:['Compromissos','Contas fixas, parceladas e pagamentos futuros'],
     relatorios:['Relatórios','Detalhado ou consolidado por período'],
     categorias:['Categorias','Padronização para os relatórios'],
     config:['Configurações','Saldos iniciais e backup local'],
@@ -472,6 +645,7 @@ function render(){
   switch(state.tab){
     case 'inicio': main.innerHTML = renderInicio(); break;
     case 'lancar': main.innerHTML = renderLancar(); break;
+    case 'compromissos': main.innerHTML = renderCompromissos(); break;
     case 'relatorios': main.innerHTML = renderRelatorios(); break;
     case 'categorias': main.innerHTML = renderCategorias(); break;
     case 'config': main.innerHTML = renderConfig(); break;
@@ -519,13 +693,62 @@ function afterRenderLogin(){
     state.session = data.session;
     await seedIfEmpty();
     await loadAll();
+    await garantirParcelasFuturas();
     render();
+    setTimeout(abrirSplashPendencias, 300);
   });
 }
 
 /* ============================================================
    TELA: INÍCIO
 ============================================================ */
+/* ============================================================
+   PAINEL DE PENDÊNCIAS (compromissos a vencer)
+============================================================ */
+function renderPendencias(){
+  const hoje = todayISO();
+  const limite = addDaysISO(hoje, 7);
+
+  const pendentes = state.parcelas
+    .filter(p=>p.status==='pendente')
+    .map(p=>({...p, compromisso: state.compromissos.find(c=>c.id===p.compromissoId)}))
+    .filter(p=>p.compromisso)
+    .sort((a,b)=> a.dataVencimento.localeCompare(b.dataVencimento) || a.id-b.id);
+
+  const atrasados = pendentes.filter(p=>p.dataVencimento < hoje);
+  const hojeItens = pendentes.filter(p=>p.dataVencimento === hoje);
+  const proximos = pendentes.filter(p=>p.dataVencimento > hoje && p.dataVencimento <= limite);
+
+  if(atrasados.length + hojeItens.length + proximos.length === 0) return '';
+
+  let html = `<div class="card compact">
+    <h2 class="section-title">Pendências
+      <small>${atrasados.length} atrasada(s) · ${hojeItens.length} vence(m) hoje · ${proximos.length} nos próx. 7 dias</small>
+    </h2>`;
+  for(const p of atrasados) html += pendenciaItemHTML(p, 'atrasado');
+  for(const p of hojeItens) html += pendenciaItemHTML(p, 'hoje');
+  for(const p of proximos) html += pendenciaItemHTML(p, 'proximo');
+  html += `</div>`;
+  return html;
+}
+
+function pendenciaItemHTML(p, situacao){
+  const c = p.compromisso;
+  const labelParcela = p.numeroParcela ? ` (${p.numeroParcela}/${p.totalParcelas})` : '';
+  let situLabel;
+  if(situacao === 'atrasado') situLabel = `Atrasado desde ${formatDataBR(p.dataVencimento)}`;
+  else if(situacao === 'hoje') situLabel = 'Vence hoje';
+  else situLabel = `Vence ${formatDataBR(p.dataVencimento)}`;
+  const corClasse = situacao === 'proximo' ? '' : 'saida';
+  return `<div class="lancamento-item" data-action="confirmar-parcela" data-id="${p.id}">
+    <div class="info">
+      <div class="hist">${escHtml(c.descricao)}${labelParcela}</div>
+      <div class="meta ${corClasse}">${situLabel} · ${escHtml(c.categoria)} · ${escHtml(c.conta)}</div>
+    </div>
+    <div class="valor saida">${formatMoeda(p.valorPrevisto)}</div>
+  </div>`;
+}
+
 function renderInicio(){
   const total = saldoTotal();
   let html = `<div class="balances">
@@ -542,6 +765,8 @@ function renderInicio(){
     </div>`;
   }
   html += `</div></div>`;
+
+  html += renderPendencias();
 
   const busca = state.buscaLancamentos || {q:'', de:'', ate:''};
   const temBusca = !!(busca.q || busca.de || busca.ate);
@@ -1041,8 +1266,126 @@ function exportarCSV(){
 }
 
 /* ============================================================
-   TELA: CATEGORIAS
+   TELA: COMPROMISSOS (parcelados, recorrentes, avulsos)
 ============================================================ */
+function renderCompromissos(){
+  const tipo = state.compromissoTipo || 'parcelado';
+  const cats = categoriasParaTipo('saida');
+
+  let html = `<div class="card">
+    <h2 class="section-title">Novo compromisso</h2>
+    <div class="segmented" id="compromissoTipoSegmented">
+      <button type="button" data-compromisso-tipo="parcelado" class="${tipo==='parcelado'?'active':''}">Parcelado</button>
+      <button type="button" data-compromisso-tipo="recorrente" class="${tipo==='recorrente'?'active':''}">Recorrente</button>
+      <button type="button" data-compromisso-tipo="avulso" class="${tipo==='avulso'?'active':''}">Avulso</button>
+    </div>
+
+    <form id="formCompromisso">
+      <label>Descrição</label>
+      <input type="text" name="descricao" placeholder="${tipo==='parcelado'?'Ex: Geladeira Magazine Luiza':(tipo==='recorrente'?'Ex: Energia Elétrica':'Ex: Manutenção do telhado')}" required>
+
+      <label>Categoria</label>
+      <select name="categoria" required>
+        ${cats.map(c=>`<option value="${escHtml(c.nome)}">${escHtml(c.nome)}</option>`).join('')}
+      </select>
+
+      <label>Conta corrente</label>
+      <select name="conta" required>
+        ${CONTAS.map(c=>`<option value="${c}">${c}</option>`).join('')}
+      </select>
+
+      <label>${tipo==='parcelado' ? 'Valor de cada parcela (R$)' : 'Valor previsto (R$)'}</label>
+      <input type="text" inputmode="decimal" name="valor" placeholder="0,00" required>
+  `;
+
+  if(tipo === 'parcelado'){
+    html += `
+      <div class="filters-grid">
+        <div>
+          <label>1ª parcela em</label>
+          <input type="date" name="dataInicio" value="${todayISO()}" required>
+        </div>
+        <div>
+          <label>Nº de parcelas</label>
+          <input type="number" name="numParcelas" min="2" max="60" value="2" required>
+        </div>
+      </div>
+    `;
+  } else if(tipo === 'recorrente'){
+    html += `
+      <label>Dia de vencimento (todo mês)</label>
+      <input type="number" name="diaVencimento" min="1" max="31" value="10" required>
+    `;
+  } else {
+    html += `
+      <label>Data de vencimento</label>
+      <input type="date" name="dataInicio" value="${todayISO()}" required>
+    `;
+  }
+
+  html += `
+      <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;font-size:.85rem;margin-top:14px;">
+        <input type="checkbox" name="valorVariavel" style="width:auto;">
+        O valor pode variar a cada vencimento (ex: conta de energia)
+      </label>
+
+      <button type="submit" class="btn">Cadastrar compromisso</button>
+    </form>
+  </div>`;
+
+  // Lista de compromissos cadastrados
+  const ativos = state.compromissos.filter(c=>c.ativo).sort((a,b)=>a.descricao.localeCompare(b.descricao,'pt-BR'));
+  const inativos = state.compromissos.filter(c=>!c.ativo).sort((a,b)=>a.descricao.localeCompare(b.descricao,'pt-BR'));
+
+  html += `<div class="card">
+    <h2 class="section-title">Compromissos ativos <small>${ativos.length} no total</small></h2>`;
+  if(ativos.length === 0){
+    html += `<div class="empty">Nenhum compromisso cadastrado ainda.</div>`;
+  } else {
+    for(const c of ativos) html += compromissoItemHTML(c);
+  }
+  html += `</div>`;
+
+  if(inativos.length > 0){
+    html += `<div class="card">
+      <h2 class="section-title">Inativos / concluídos <small>${inativos.length}</small></h2>`;
+    for(const c of inativos) html += compromissoItemHTML(c);
+    html += `</div>`;
+  }
+
+  return html;
+}
+
+function compromissoItemHTML(c){
+  const parcelasC = state.parcelas.filter(p=>p.compromissoId===c.id);
+  const pagas = parcelasC.filter(p=>p.status==='pago').length;
+  const total = parcelasC.length;
+
+  const tipoLabel = c.tipo==='parcelado' ? 'Parcelado' : (c.tipo==='recorrente' ? 'Recorrente' : 'Avulso');
+  const tipoTag = c.tipo==='recorrente' ? 'entrada' : (c.tipo==='avulso' ? 'ambos' : 'saida');
+
+  let progresso = '';
+  if(c.tipo === 'parcelado'){
+    progresso = ` · ${pagas}/${total} pagas`;
+  } else if(c.tipo === 'recorrente'){
+    progresso = ` · vence todo dia ${c.diaVencimento}`;
+  } else {
+    const p = parcelasC[0];
+    progresso = p ? ` · ${formatDataBR(p.dataVencimento)}` : '';
+  }
+
+  return `<div class="category-row">
+    <span class="name">
+      ${escHtml(c.descricao)}
+      <span class="tag ${tipoTag}" style="margin-left:4px;">${tipoLabel}</span>
+      <div class="meta" style="font-size:.7rem;color:var(--ink-soft);">${escHtml(c.categoria)} · ${escHtml(c.conta)} · ${formatMoeda(c.valorPrevisto)}${c.valorVariavel?' (variável)':''}${progresso}</div>
+    </span>
+    <button class="icon-btn" data-action="${c.ativo?'inativar-compromisso':'ativar-compromisso'}" data-id="${c.id}" title="${c.ativo?'Inativar':'Reativar'}">${c.ativo?'⏸️':'▶️'}</button>
+    <button class="icon-btn" data-action="excluir-compromisso" data-id="${c.id}" title="Excluir">🗑️</button>
+  </div>`;
+}
+
+
 function renderCategorias(){
   const cats = [...state.categorias].sort((a,b)=>{
     if(a.tipo !== b.tipo) {
@@ -1246,6 +1589,78 @@ function abrirModalEditarLancamento(id){
   });
 }
 
+function abrirModalConfirmarParcela(parcelaId){
+  const p = state.parcelas.find(x=>x.id===parcelaId);
+  const c = p ? state.compromissos.find(x=>x.id===p.compromissoId) : null;
+  if(!p || !c) return;
+
+  const labelParcela = p.numeroParcela ? ` (${p.numeroParcela}/${p.totalParcelas})` : '';
+  const cats = categoriasParaTipo('saida');
+
+  openModal(`
+    <h3>Confirmar pagamento</h3>
+    <p class="note">${escHtml(c.descricao)}${labelParcela} · vencimento ${formatDataBR(p.dataVencimento)}${c.valorVariavel ? ' · valor pode variar, ajuste abaixo' : ''}</p>
+    <form id="formConfirmarParcela">
+      <label>Data do pagamento</label>
+      <input type="date" name="data" value="${todayISO()}" required>
+
+      <label>Histórico</label>
+      <input type="text" name="historico" value="${escHtml(c.descricao)}${labelParcela}" required>
+
+      <label>Categoria</label>
+      <select name="categoria" required>
+        ${cats.map(cat=>`<option value="${escHtml(cat.nome)}" ${cat.nome===c.categoria?'selected':''}>${escHtml(cat.nome)}</option>`).join('')}
+      </select>
+
+      <label>Conta corrente</label>
+      <select name="conta" required>
+        ${CONTAS.map(cc=>`<option value="${cc}" ${cc===c.conta?'selected':''}>${cc}</option>`).join('')}
+      </select>
+
+      <label>Valor pago (R$)</label>
+      <input type="text" inputmode="decimal" name="valor" value="${p.valorPrevisto.toFixed(2).replace('.',',')}" required>
+
+      <div class="btn-row">
+        <button type="button" class="btn ghost" id="btnCancelarConfirmacao">Voltar</button>
+        <button type="submit" class="btn">Confirmar pagamento</button>
+      </div>
+    </form>
+    <button class="btn danger" style="margin-top:10px;" id="btnNaoSeAplica">Esta parcela não se aplica (cancelar)</button>
+  `);
+
+  document.getElementById('btnCancelarConfirmacao').addEventListener('click', closeModal);
+
+  document.getElementById('btnNaoSeAplica').addEventListener('click', async ()=>{
+    if(!confirm('Marcar esta parcela como cancelada? Ela vai sumir das pendências sem gerar lançamento.')) return;
+    await dbPut('parcelas', {...p, status:'cancelado'});
+    await loadAll();
+    closeModal();
+    render();
+    showToast('Parcela cancelada.');
+  });
+
+  document.getElementById('formConfirmarParcela').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const form = e.target;
+    const valor = parseValor(form.valor.value);
+    if(valor <= 0){ showToast('Informe um valor maior que zero.'); return; }
+
+    const novoId = await dbAdd('lancamentos', {
+      data: form.data.value,
+      historico: form.historico.value.trim(),
+      categoria: form.categoria.value,
+      conta: form.conta.value,
+      tipo: 'saida',
+      valor
+    });
+    await dbPut('parcelas', { ...p, status:'pago', lancamentoId: novoId, valorPago: valor });
+    await loadAll();
+    closeModal();
+    render();
+    showToast('Pagamento registrado.');
+  });
+}
+
 function abrirModalEditarCategoria(id){
   const c = state.categorias.find(x=>x.id===id);
   if(!c) return;
@@ -1291,6 +1706,98 @@ function abrirModalEditarCategoria(id){
 /* ============================================================
    EVENTOS
 ============================================================ */
+/* ============================================================
+   SPLASH DE NOTIFICAÇÃO — abre ao entrar no app
+============================================================ */
+function calcularSplashPendencias(){
+  const hoje = todayISO();
+  const horizonte = addDaysISO(hoje, 2);
+  return state.parcelas
+    .filter(p => p.status === 'pendente' && p.dataVencimento <= horizonte)
+    .map(p => ({
+      ...p,
+      compromisso: state.compromissos.find(c => c.id === p.compromissoId)
+    }))
+    .filter(p => p.compromisso)
+    .sort((a,b) => a.dataVencimento.localeCompare(b.dataVencimento));
+}
+
+function abrirSplashPendencias(){
+  const hoje = todayISO();
+  const amanha = addDaysISO(hoje, 1);
+  const horizonte = addDaysISO(hoje, 2);
+  const urgentes = calcularSplashPendencias();
+  if(urgentes.length === 0) return;
+
+  const atrasados = urgentes.filter(p => p.dataVencimento < hoje);
+  const hojeItens  = urgentes.filter(p => p.dataVencimento === hoje);
+  const emBreve    = urgentes.filter(p => p.dataVencimento > hoje && p.dataVencimento <= horizonte);
+
+  let body = '';
+  if(atrasados.length){
+    body += `<div class="splash-section-label">⚠️ Atrasados — ${atrasados.length} item(ns)</div>`;
+    for(const p of atrasados) body += splashItemHTML(p, 'atrasado');
+  }
+  if(hojeItens.length){
+    body += `<div class="splash-section-label">🔴 Vencem hoje — ${hojeItens.length} item(ns)</div>`;
+    for(const p of hojeItens) body += splashItemHTML(p, 'hoje');
+  }
+  if(emBreve.length){
+    body += `<div class="splash-section-label">🟡 Vencem em breve — ${emBreve.length} item(ns)</div>`;
+    for(const p of emBreve) body += splashItemHTML(p, 'embreve');
+  }
+
+  document.getElementById('splashRoot').innerHTML = `
+    <div class="splash-overlay" id="splashOverlay">
+      <div class="splash">
+        <div class="splash-header">
+          <h2>Avisos do dia</h2>
+          <p>${urgentes.length} pendência(s) requer(em) atenção</p>
+        </div>
+        <div class="splash-body">${body}</div>
+        <div class="splash-footer">
+          <button class="btn" id="btnFecharSplash">Ver tudo na tela Início</button>
+        </div>
+      </div>
+    </div>`;
+
+  document.getElementById('btnFecharSplash').addEventListener('click', fecharSplash);
+
+  document.querySelectorAll('[data-splash-parcela]').forEach(el => {
+    el.addEventListener('click', () => {
+      fecharSplash();
+      abrirModalConfirmarParcela(Number(el.dataset.splashParcela));
+    });
+  });
+}
+
+function splashItemHTML(p, situacao){
+  const c = p.compromisso;
+  const labelParcela = p.numeroParcela ? ` (${p.numeroParcela}/${p.totalParcelas})` : '';
+  const hoje = todayISO();
+  let meta;
+  if(situacao === 'atrasado'){
+    const dias = Math.round((new Date(hoje) - new Date(p.dataVencimento)) / 86400000);
+    meta = `${dias} dia(s) em atraso · venceu ${formatDataBR(p.dataVencimento)}`;
+  } else if(situacao === 'hoje'){
+    meta = `Vence hoje · ${escHtml(c.conta)}`;
+  } else {
+    const dias = Math.round((new Date(p.dataVencimento) - new Date(hoje)) / 86400000);
+    meta = `Vence em ${dias} dia(s) · ${formatDataBR(p.dataVencimento)}`;
+  }
+  return `<div class="splash-item ${situacao}" data-splash-parcela="${p.id}">
+    <div class="info">
+      <div class="si-desc">${escHtml(c.descricao)}${labelParcela}</div>
+      <div class="si-meta">${meta} · ${escHtml(c.categoria)}</div>
+    </div>
+    <div class="si-valor">${formatMoeda(p.valorPrevisto)}</div>
+  </div>`;
+}
+
+function fecharSplash(){
+  document.getElementById('splashRoot').innerHTML = '';
+}
+
 function afterRender(){
   // navegação
   document.querySelectorAll('nav.bottomnav button').forEach(b=>{
@@ -1300,6 +1807,9 @@ function afterRender(){
   if(state.tab === 'inicio'){
     document.querySelectorAll('[data-action="editar-lancamento"]').forEach(el=>{
       el.addEventListener('click', ()=>abrirModalEditarLancamento(Number(el.dataset.id)));
+    });
+    document.querySelectorAll('[data-action="confirmar-parcela"]').forEach(el=>{
+      el.addEventListener('click', ()=>abrirModalConfirmarParcela(Number(el.dataset.id)));
     });
     const formBusca = document.getElementById('formBusca');
     formBusca.addEventListener('submit', (e)=>{
@@ -1392,6 +1902,98 @@ function afterRender(){
         await loadAll();
         render();
         showToast('Categoria excluída.');
+      });
+    });
+  }
+
+  if(state.tab === 'compromissos'){
+    document.querySelectorAll('[data-compromisso-tipo]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        state.compromissoTipo = btn.dataset.compromissoTipo;
+        render();
+      });
+    });
+    document.getElementById('formCompromisso').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const form = e.target;
+      const tipo = state.compromissoTipo || 'parcelado';
+      const valor = parseValor(form.valor.value);
+      if(valor <= 0){ showToast('Informe um valor maior que zero.'); return; }
+
+      const compromisso = {
+        descricao: form.descricao.value.trim(),
+        tipo,
+        categoria: form.categoria.value,
+        conta: form.conta.value,
+        valorPrevisto: valor,
+        valorVariavel: form.valorVariavel.checked,
+        ativo: true
+      };
+      if(tipo === 'parcelado'){
+        compromisso.dataInicio = form.dataInicio.value;
+        compromisso.numParcelas = parseInt(form.numParcelas.value, 10);
+        if(!compromisso.dataInicio || !compromisso.numParcelas || compromisso.numParcelas < 2){
+          showToast('Informe a data da 1ª parcela e o número de parcelas (mínimo 2).');
+          return;
+        }
+      } else if(tipo === 'recorrente'){
+        compromisso.diaVencimento = parseInt(form.diaVencimento.value, 10);
+        if(!compromisso.diaVencimento || compromisso.diaVencimento<1 || compromisso.diaVencimento>31){
+          showToast('Informe um dia de vencimento entre 1 e 31.');
+          return;
+        }
+      } else {
+        compromisso.dataInicio = form.dataInicio.value;
+        if(!compromisso.dataInicio){
+          showToast('Informe a data de vencimento.');
+          return;
+        }
+      }
+
+      const novoId = await dbAdd('compromissos', compromisso);
+      const parcelas = gerarParcelasIniciais(compromisso, novoId);
+      for(const p of parcelas){
+        await dbAdd('parcelas', p);
+      }
+      await loadAll();
+      render();
+      showToast('Compromisso cadastrado.');
+    });
+
+    document.querySelectorAll('[data-action="inativar-compromisso"]').forEach(el=>{
+      el.addEventListener('click', async ()=>{
+        const id = Number(el.dataset.id);
+        if(!confirm('Inativar este compromisso? As parcelas pendentes serão canceladas e ele deixa de aparecer nas pendências.')) return;
+        const c = state.compromissos.find(x=>x.id===id);
+        await dbPut('compromissos', {...c, ativo:false});
+        const pendentes = state.parcelas.filter(p=>p.compromissoId===id && p.status==='pendente');
+        for(const p of pendentes){
+          await dbPut('parcelas', {...p, status:'cancelado'});
+        }
+        await loadAll();
+        render();
+        showToast('Compromisso inativado.');
+      });
+    });
+    document.querySelectorAll('[data-action="ativar-compromisso"]').forEach(el=>{
+      el.addEventListener('click', async ()=>{
+        const id = Number(el.dataset.id);
+        const c = state.compromissos.find(x=>x.id===id);
+        await dbPut('compromissos', {...c, ativo:true});
+        await loadAll();
+        if(c.tipo === 'recorrente') await garantirParcelasFuturas();
+        render();
+        showToast('Compromisso reativado.');
+      });
+    });
+    document.querySelectorAll('[data-action="excluir-compromisso"]').forEach(el=>{
+      el.addEventListener('click', async ()=>{
+        const id = Number(el.dataset.id);
+        if(!confirm('Excluir este compromisso e todas as suas parcelas? Lançamentos já registrados não serão apagados.')) return;
+        await dbDelete('compromissos', id);
+        await loadAll();
+        render();
+        showToast('Compromisso excluído.');
       });
     });
   }
@@ -1490,8 +2092,13 @@ function afterRender(){
   if(state.session){
     await seedIfEmpty();
     await loadAll();
+    await garantirParcelasFuturas();
+    render();
+    // Abre o aviso do dia logo após carregar, se houver pendências urgentes
+    setTimeout(abrirSplashPendencias, 300);
+  } else {
+    render();
   }
-  render();
 })();
 </script>
 <script>
