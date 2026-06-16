@@ -611,7 +611,14 @@ function saldoTotal(){
    ROTEAMENTO / RENDER
 ============================================================ */
 function setTab(tab){
+
+  // Ao sair de Compromissos, volta para a tela raiz
+  if(state.tab === 'compromissos' && tab !== 'compromissos'){
+    state.compromissosStack = 'lista';
+  }
+
   state.tab = tab;
+
   render();
 }
 function render(){
@@ -1269,87 +1276,235 @@ function exportarCSV(){
    TELA: COMPROMISSOS (parcelados, recorrentes, avulsos)
 ============================================================ */
 function renderCompromissos(){
+
+  if(!state.compromissosStack){
+    state.compromissosStack = 'lista';
+  }
+
   const tipo = state.compromissoTipo || 'parcelado';
   const cats = categoriasParaTipo('saida');
 
-  let html = `<div class="card">
-    <h2 class="section-title">Novo compromisso</h2>
-    <div class="segmented" id="compromissoTipoSegmented">
-      <button type="button" data-compromisso-tipo="parcelado" class="${tipo==='parcelado'?'active':''}">Parcelado</button>
-      <button type="button" data-compromisso-tipo="recorrente" class="${tipo==='recorrente'?'active':''}">Recorrente</button>
-      <button type="button" data-compromisso-tipo="avulso" class="${tipo==='avulso'?'active':''}">Avulso</button>
-    </div>
+  let html = '';
 
-    <form id="formCompromisso">
-      <label>Descrição</label>
-      <input type="text" name="descricao" placeholder="${tipo==='parcelado'?'Ex: Geladeira Magazine Luiza':(tipo==='recorrente'?'Ex: Energia Elétrica':'Ex: Manutenção do telhado')}" required>
+  // ==========================
+  // TELA PRINCIPAL (LISTA)
+  // ==========================
+  if(state.compromissosStack === 'lista'){
 
-      <label>Categoria</label>
-      <select name="categoria" required>
-        ${cats.map(c=>`<option value="${escHtml(c.nome)}">${escHtml(c.nome)}</option>`).join('')}
-      </select>
-
-      <label>Conta corrente</label>
-      <select name="conta" required>
-        ${CONTAS.map(c=>`<option value="${c}">${c}</option>`).join('')}
-      </select>
-
-      <label>${tipo==='parcelado' ? 'Valor de cada parcela (R$)' : 'Valor previsto (R$)'}</label>
-      <input type="text" inputmode="decimal" name="valor" placeholder="0,00" required>
-  `;
-
-  if(tipo === 'parcelado'){
     html += `
-      <div class="filters-grid">
-        <div>
-          <label>1ª parcela em</label>
-          <input type="date" name="dataInicio" value="${todayISO()}" required>
-        </div>
-        <div>
-          <label>Nº de parcelas</label>
-          <input type="number" name="numParcelas" min="2" max="60" value="2" required>
-        </div>
+    <div class="card">
+      <button class="btn" id="btnNovoCompromisso">
+        ➕ Novo compromisso
+      </button>
+    </div>`;
+  }
+
+  // ==========================
+  // CAMADA SOBREPOSTA
+  // ==========================
+  if(state.compromissosStack === 'novo'){
+
+    html += `
+    <div class="card">
+      <button
+        type="button"
+        id="btnVoltarCompromisso"
+        class="btn secondary"
+        style="margin-bottom:12px;">
+        ← Voltar
+      </button>
+
+      <h2 class="section-title">Novo compromisso</h2>
+
+      <div class="segmented" id="compromissoTipoSegmented">
+        <button type="button" data-compromisso-tipo="parcelado" class="${tipo==='parcelado'?'active':''}">
+          Parcelado
+        </button>
+
+        <button type="button" data-compromisso-tipo="recorrente" class="${tipo==='recorrente'?'active':''}">
+          Recorrente
+        </button>
+
+        <button type="button" data-compromisso-tipo="avulso" class="${tipo==='avulso'?'active':''}">
+          Avulso
+        </button>
       </div>
+
+      <form id="formCompromisso">
+
+        <label>Descrição</label>
+        <input
+          type="text"
+          name="descricao"
+          placeholder="${tipo==='parcelado'
+            ? 'Ex: Geladeira Magazine Luiza'
+            : (tipo==='recorrente'
+              ? 'Ex: Energia Elétrica'
+              : 'Ex: Manutenção do telhado')}"
+          required>
+
+        <label>Categoria</label>
+        <select name="categoria" required>
+          ${cats.map(c => `
+            <option value="${escHtml(c.nome)}">
+              ${escHtml(c.nome)}
+            </option>
+          `).join('')}
+        </select>
+
+        <label>Conta corrente</label>
+        <select name="conta" required>
+          ${CONTAS.map(c => `
+            <option value="${c}">
+              ${c}
+            </option>
+          `).join('')}
+        </select>
+
+        <label>
+          ${tipo==='parcelado'
+            ? 'Valor de cada parcela (R$)'
+            : 'Valor previsto (R$)'}
+        </label>
+
+        <input
+          type="text"
+          inputmode="decimal"
+          name="valor"
+          placeholder="0,00"
+          required>
     `;
-  } else if(tipo === 'recorrente'){
+
+    if(tipo === 'parcelado'){
+
+      html += `
+        <div class="filters-grid">
+          <div>
+            <label>1ª parcela em</label>
+            <input
+              type="date"
+              name="dataInicio"
+              value="${todayISO()}"
+              required>
+          </div>
+
+          <div>
+            <label>Nº de parcelas</label>
+            <input
+              type="number"
+              name="numParcelas"
+              min="2"
+              max="60"
+              value="2"
+              required>
+          </div>
+        </div>
+      `;
+
+    } else if(tipo === 'recorrente'){
+
+      html += `
+        <label>Dia de vencimento (todo mês)</label>
+        <input
+          type="number"
+          name="diaVencimento"
+          min="1"
+          max="31"
+          value="10"
+          required>
+      `;
+
+    } else {
+
+      html += `
+        <label>Data de vencimento</label>
+        <input
+          type="date"
+          name="dataInicio"
+          value="${todayISO()}"
+          required>
+      `;
+    }
+
     html += `
-      <label>Dia de vencimento (todo mês)</label>
-      <input type="number" name="diaVencimento" min="1" max="31" value="10" required>
-    `;
-  } else {
-    html += `
-      <label>Data de vencimento</label>
-      <input type="date" name="dataInicio" value="${todayISO()}" required>
+        <label style="
+          display:flex;
+          align-items:center;
+          gap:8px;
+          text-transform:none;
+          letter-spacing:0;
+          font-size:.85rem;
+          margin-top:14px;
+        ">
+          <input
+            type="checkbox"
+            name="valorVariavel"
+            style="width:auto;">
+
+          O valor pode variar a cada vencimento
+          (ex: conta de energia)
+        </label>
+
+        <button type="submit" class="btn">
+          Cadastrar compromisso
+        </button>
+
+      </form>
+    </div>
     `;
   }
+
+  // ==========================
+  // LISTA DE COMPROMISSOS
+  // ==========================
+
+  const ativos = state.compromissos
+    .filter(c => c.ativo)
+    .sort((a,b)=>a.descricao.localeCompare(b.descricao,'pt-BR'));
+
+  const inativos = state.compromissos
+    .filter(c => !c.ativo)
+    .sort((a,b)=>a.descricao.localeCompare(b.descricao,'pt-BR'));
 
   html += `
-      <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;font-size:.85rem;margin-top:14px;">
-        <input type="checkbox" name="valorVariavel" style="width:auto;">
-        O valor pode variar a cada vencimento (ex: conta de energia)
-      </label>
+  <div class="card">
+    <h2 class="section-title">
+      Compromissos ativos
+      <small>${ativos.length} no total</small>
+    </h2>
+  `;
 
-      <button type="submit" class="btn">Cadastrar compromisso</button>
-    </form>
-  </div>`;
-
-  // Lista de compromissos cadastrados
-  const ativos = state.compromissos.filter(c=>c.ativo).sort((a,b)=>a.descricao.localeCompare(b.descricao,'pt-BR'));
-  const inativos = state.compromissos.filter(c=>!c.ativo).sort((a,b)=>a.descricao.localeCompare(b.descricao,'pt-BR'));
-
-  html += `<div class="card">
-    <h2 class="section-title">Compromissos ativos <small>${ativos.length} no total</small></h2>`;
   if(ativos.length === 0){
-    html += `<div class="empty">Nenhum compromisso cadastrado ainda.</div>`;
-  } else {
-    for(const c of ativos) html += compromissoItemHTML(c);
+
+    html += `
+      <div class="empty">
+        Nenhum compromisso cadastrado ainda.
+      </div>
+    `;
+
+  }else{
+
+    for(const c of ativos){
+      html += compromissoItemHTML(c);
+    }
   }
+
   html += `</div>`;
 
   if(inativos.length > 0){
-    html += `<div class="card">
-      <h2 class="section-title">Inativos / concluídos <small>${inativos.length}</small></h2>`;
-    for(const c of inativos) html += compromissoItemHTML(c);
+
+    html += `
+    <div class="card">
+      <h2 class="section-title">
+        Inativos / concluídos
+        <small>${inativos.length}</small>
+      </h2>
+    `;
+
+    for(const c of inativos){
+      html += compromissoItemHTML(c);
+    }
+
     html += `</div>`;
   }
 
@@ -1357,35 +1512,97 @@ function renderCompromissos(){
 }
 
 function compromissoItemHTML(c){
-  const parcelasC = state.parcelas.filter(p=>p.compromissoId===c.id);
-  const pagas = parcelasC.filter(p=>p.status==='pago').length;
+
+  const parcelasC = state.parcelas.filter(
+    p => p.compromissoId === c.id
+  );
+
+  const pagas = parcelasC.filter(
+    p => p.status === 'pago'
+  ).length;
+
   const total = parcelasC.length;
 
-  const tipoLabel = c.tipo==='parcelado' ? 'Parcelado' : (c.tipo==='recorrente' ? 'Recorrente' : 'Avulso');
-  const tipoTag = c.tipo==='recorrente' ? 'entrada' : (c.tipo==='avulso' ? 'ambos' : 'saida');
+  const tipoLabel =
+    c.tipo === 'parcelado'
+      ? 'Parcelado'
+      : (c.tipo === 'recorrente'
+          ? 'Recorrente'
+          : 'Avulso');
+
+  const tipoTag =
+    c.tipo === 'recorrente'
+      ? 'entrada'
+      : (c.tipo === 'avulso'
+          ? 'ambos'
+          : 'saida');
 
   let progresso = '';
+
   if(c.tipo === 'parcelado'){
+
     progresso = ` · ${pagas}/${total} pagas`;
-  } else if(c.tipo === 'recorrente'){
+
+  }else if(c.tipo === 'recorrente'){
+
     progresso = ` · vence todo dia ${c.diaVencimento}`;
-  } else {
+
+  }else{
+
     const p = parcelasC[0];
-    progresso = p ? ` · ${formatDataBR(p.dataVencimento)}` : '';
+
+    progresso = p
+      ? ` · ${formatDataBR(p.dataVencimento)}`
+      : '';
   }
 
-  return `<div class="category-row">
+  return `
+  <div class="category-row">
     <span class="name">
       ${escHtml(c.descricao)}
-      <span class="tag ${tipoTag}" style="margin-left:4px;">${tipoLabel}</span>
-      <div class="meta" style="font-size:.7rem;color:var(--ink-soft);">${escHtml(c.categoria)} · ${escHtml(c.conta)} · ${formatMoeda(c.valorPrevisto)}${c.valorVariavel?' (variável)':''}${progresso}</div>
+
+      <span
+        class="tag ${tipoTag}"
+        style="margin-left:4px;">
+        ${tipoLabel}
+      </span>
+
+      <div
+        class="meta"
+        style="font-size:.7rem;color:var(--ink-soft);">
+
+        ${escHtml(c.categoria)}
+        · ${escHtml(c.conta)}
+        · ${formatMoeda(c.valorPrevisto)}
+        ${c.valorVariavel ? ' (variável)' : ''}
+        ${progresso}
+
+      </div>
     </span>
-    <button class="icon-btn" data-action="${c.ativo?'inativar-compromisso':'ativar-compromisso'}" data-id="${c.id}" title="${c.ativo?'Inativar':'Reativar'}">${c.ativo?'⏸️':'▶️'}</button>
-    <button class="icon-btn" data-action="excluir-compromisso" data-id="${c.id}" title="Excluir">🗑️</button>
-  </div>`;
+
+    <button
+      class="icon-btn"
+      data-action="${c.ativo ? 'inativar-compromisso' : 'ativar-compromisso'}"
+      data-id="${c.id}"
+      title="${c.ativo ? 'Inativar' : 'Reativar'}">
+
+      ${c.ativo ? '⏸️' : '▶️'}
+
+    </button>
+
+    <button
+      class="icon-btn"
+      data-action="excluir-compromisso"
+      data-id="${c.id}"
+      title="Excluir">
+
+      🗑️
+
+    </button>
+  </div>
+  `;
 }
-
-
+ 
 function renderCategorias(){
   const cats = [...state.categorias].sort((a,b)=>{
     if(a.tipo !== b.tipo) {
@@ -1799,33 +2016,94 @@ function fecharSplash(){
 }
 
 function afterRender(){
+
   // navegação
   document.querySelectorAll('nav.bottomnav button').forEach(b=>{
     b.onclick = ()=>setTab(b.dataset.tab);
   });
 
+  // ==================================================
+  // INÍCIO
+  // ==================================================
   if(state.tab === 'inicio'){
+
     document.querySelectorAll('[data-action="editar-lancamento"]').forEach(el=>{
-      el.addEventListener('click', ()=>abrirModalEditarLancamento(Number(el.dataset.id)));
+      el.addEventListener('click', ()=>{
+        abrirModalEditarLancamento(Number(el.dataset.id));
+      });
     });
+
     document.querySelectorAll('[data-action="confirmar-parcela"]').forEach(el=>{
-      el.addEventListener('click', ()=>abrirModalConfirmarParcela(Number(el.dataset.id)));
+      el.addEventListener('click', ()=>{
+        abrirModalConfirmarParcela(Number(el.dataset.id));
+      });
     });
+
     const formBusca = document.getElementById('formBusca');
-    formBusca.addEventListener('submit', (e)=>{
-      e.preventDefault();
-      const fd = new FormData(formBusca);
-      state.buscaLancamentos = { q: fd.get('q').trim(), de: fd.get('de'), ate: fd.get('ate') };
-      render();
-    });
+
+    if(formBusca){
+      formBusca.addEventListener('submit', (e)=>{
+        e.preventDefault();
+
+        const fd = new FormData(formBusca);
+
+        state.buscaLancamentos = {
+          q: fd.get('q').trim(),
+          de: fd.get('de'),
+          ate: fd.get('ate')
+        };
+
+        render();
+      });
+    }
+
     const btnLimpar = document.getElementById('btnLimparBusca');
+
     if(btnLimpar){
       btnLimpar.addEventListener('click', ()=>{
-        state.buscaLancamentos = {q:'', de:'', ate:''};
+        state.buscaLancamentos = {
+          q:'',
+          de:'',
+          ate:''
+        };
+
         render();
       });
     }
   }
+
+  // ==================================================
+  // COMPROMISSOS - NAVEGAÇÃO EM PILHA
+  // ==================================================
+  if(state.tab === 'compromissos'){
+
+    const btnNovoCompromisso =
+      document.getElementById('btnNovoCompromisso');
+
+    if(btnNovoCompromisso){
+      btnNovoCompromisso.addEventListener('click', ()=>{
+
+        state.compromissosStack = 'novo';
+
+        render();
+      });
+    }
+
+    const btnVoltarCompromisso =
+      document.getElementById('btnVoltarCompromisso');
+
+    if(btnVoltarCompromisso){
+      btnVoltarCompromisso.addEventListener('click', ()=>{
+
+        state.compromissosStack = 'lista';
+
+        render();
+      });
+    }
+
+  }
+
+}
 
   if(state.tab === 'lancar'){
     document.querySelectorAll('[data-lancar-tipo]').forEach(btn=>{
