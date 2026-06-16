@@ -4,7 +4,7 @@
 // AUMENTE o número abaixo (v1 -> v2 -> v3...)
 // Nunca diminua o número - isso força o app a baixar a versão nova.
 // ============================================================
-const CACHE_NAME = 'igreja-financas-v3';
+const CACHE_NAME = 'igreja-financas-v4';
 
 const ASSETS = [
   './index.html',
