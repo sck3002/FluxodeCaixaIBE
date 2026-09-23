@@ -1446,6 +1446,7 @@ function despesasPorCategoriaNoPeriodo(f){
   const porCategoria = {};
   for(const l of state.lancamentos){
     if(l.tipo !== 'saida') continue;
+    if(l.categoria === CAT_TRANSFER) continue;
     if(l.data < f.inicio || l.data > f.fim) continue;
     if(!porCategoria[l.categoria]) porCategoria[l.categoria] = 0;
     porCategoria[l.categoria] += l.valor;
@@ -1492,7 +1493,7 @@ function renderDashboardArea(){
 
 function renderDashboardDrillDown(f, categoria){
   const lancs = state.lancamentos
-    .filter(l=>l.tipo==='saida' && l.categoria===categoria && l.data>=f.inicio && l.data<=f.fim)
+    .filter(l=>l.tipo==='saida' && l.categoria===categoria && categoria!==CAT_TRANSFER && l.data>=f.inicio && l.data<=f.fim)
     .sort((a,b)=> b.data.localeCompare(a.data) || b.id-a.id);
   const total = lancs.reduce((acc,l)=>acc+l.valor,0);
 
