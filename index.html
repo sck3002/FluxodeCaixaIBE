@@ -50,9 +50,9 @@ header.topbar .sub{font-size:.7rem;opacity:.7;margin-top:2px;text-transform:uppe
 
 main{flex:1;padding:12px 16px 96px;}
 nav.bottomnav{position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;background:var(--paper);border-top:1px solid var(--line);display:flex;z-index:20;padding-bottom:env(safe-area-inset-bottom);}
-nav.bottomnav button{flex:1;background:none;border:none;padding:8px 2px 7px;font-size:.56rem;color:var(--ink-soft);display:flex;flex-direction:column;align-items:center;gap:2px;font-family:inherit;cursor:pointer;line-height:1.1;text-align:center;}
+nav.bottomnav button{flex:1;background:none;border:none;padding:8px 1px 7px;font-size:.52rem;color:var(--ink-soft);display:flex;flex-direction:column;align-items:center;gap:2px;font-family:inherit;cursor:pointer;line-height:1.1;text-align:center;}
 nav.bottomnav button.active{color:var(--primary);font-weight:700;}
-nav.bottomnav .icon{font-size:1.25rem;}
+nav.bottomnav .icon{font-size:1.15rem;}
 
 .card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin-bottom:12px;}
 .card.compact{padding:10px 12px;margin-bottom:8px;}
@@ -155,6 +155,21 @@ table.report tr.saldo-row td{font-weight:700;background:#FBF8F0;}
   table.report{font-size:.85rem;}
 }
 
+/* ===== Paisagem em celular (largura maior que a altura, mas ainda uma tela pequena) ===== */
+@media (orientation:landscape) and (max-height:520px){
+  #app{max-width:none;}
+  header.topbar{padding:10px 16px 4px;}
+  header.topbar h1{font-size:1.1rem;}
+  header.topbar .sub{margin-top:0;}
+  .balances{flex-direction:row;padding:8px 16px 4px;}
+  .balance-row{display:contents;}
+  main{padding:10px 24px 76px;max-width:900px;margin:0 auto;}
+  nav.bottomnav{max-width:none;}
+  nav.bottomnav button{padding:6px 2px 5px;}
+  nav.bottomnav .icon{font-size:1rem;}
+  .filters-grid{grid-template-columns:1fr 1fr 1fr 1fr;}
+}
+
 .print-only{display:none;}
 .letterhead{display:flex;gap:14px;align-items:center;margin-bottom:14px;}
 .letterhead img{width:64px;height:64px;object-fit:contain;}
@@ -183,6 +198,7 @@ table.report tr.saldo-row td{font-weight:700;background:#FBF8F0;}
   <nav class="bottomnav no-print">
     <button data-tab="inicio"><span class="icon">🏠</span>Início</button>
     <button data-tab="lancar"><span class="icon">➕</span>Lançar</button>
+    <button data-tab="dashboard"><span class="icon">📈</span>Painel</button>
     <button data-tab="compromissos"><span class="icon">📌</span>Compromissos</button>
     <button data-tab="relatorios"><span class="icon">📊</span>Relatórios</button>
     <button data-tab="categorias"><span class="icon">🏷️</span>Categorias</button>
@@ -196,6 +212,7 @@ table.report tr.saldo-row td{font-weight:700;background:#FBF8F0;}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script>
 /* ============================================================
    CONFIGURAÇÃO DO SUPABASE
@@ -257,6 +274,9 @@ let state = {
   compromissoTipo: 'parcelado',
   reportFilters: null,
   reportResult: null,
+  dashboardFiltros: null,
+  dashboardCategoriaSelecionada: null,
+  dashboardChartInstance: null,
   session: null,
   authError: null,
   authLoading: false,
@@ -634,6 +654,7 @@ function render(){
   const titles = {
     inicio:['Finanças da Igreja','Controle de caixa, banco e adiantamento'],
     lancar:['Novo Lançamento','Registrar entrada, saída ou transferência'],
+    dashboard:['Painel','Despesas por categoria no período'],
     compromissos:['Compromissos','Contas fixas, parceladas e pagamentos futuros'],
     relatorios:['Relatórios','Detalhado ou consolidado por período'],
     categorias:['Categorias','Padronização para os relatórios'],
@@ -645,6 +666,7 @@ function render(){
   switch(state.tab){
     case 'inicio': main.innerHTML = renderInicio(); break;
     case 'lancar': main.innerHTML = renderLancar(); break;
+    case 'dashboard': main.innerHTML = renderDashboard(); break;
     case 'compromissos': main.innerHTML = renderCompromissos(); break;
     case 'relatorios': main.innerHTML = renderRelatorios(); break;
     case 'categorias': main.innerHTML = renderCategorias(); break;
@@ -1386,6 +1408,184 @@ function compromissoItemHTML(c){
 }
 
 
+/* ============================================================
+   TELA: PAINEL (dashboard - gráfico de despesas por categoria)
+============================================================ */
+const DASHBOARD_CORES = ['#1F4734','#C28E2C','#A6432F','#3A6B53','#7A746A','#8B5E3C','#4A6B8A','#B5843C','#5C4A6B','#6B8A4A','#8A4A6B','#4A8A7C'];
+
+function defaultDashboardFiltros(){
+  return { inicio: firstDayOfMonthISO(), fim: todayISO() };
+}
+
+function renderDashboard(){
+  const f = state.dashboardFiltros || defaultDashboardFiltros();
+  state.dashboardFiltros = f;
+
+  let html = `<div class="card">
+    <h2 class="section-title">Período</h2>
+    <form id="formDashboard">
+      <div class="filters-grid">
+        <div>
+          <label>De</label>
+          <input type="date" name="inicio" value="${f.inicio}">
+        </div>
+        <div>
+          <label>Até</label>
+          <input type="date" name="fim" value="${f.fim}">
+        </div>
+      </div>
+      <button type="submit" class="btn">Atualizar painel</button>
+    </form>
+  </div>`;
+
+  html += `<div id="dashboardArea">${renderDashboardArea()}</div>`;
+  return html;
+}
+
+function despesasPorCategoriaNoPeriodo(f){
+  const porCategoria = {};
+  for(const l of state.lancamentos){
+    if(l.tipo !== 'saida') continue;
+    if(l.data < f.inicio || l.data > f.fim) continue;
+    if(!porCategoria[l.categoria]) porCategoria[l.categoria] = 0;
+    porCategoria[l.categoria] += l.valor;
+  }
+  return porCategoria;
+}
+
+function renderDashboardArea(){
+  const f = state.dashboardFiltros;
+  const catSelecionada = state.dashboardCategoriaSelecionada;
+
+  if(catSelecionada){
+    return renderDashboardDrillDown(f, catSelecionada);
+  }
+
+  const porCategoria = despesasPorCategoriaNoPeriodo(f);
+  const categorias = Object.keys(porCategoria).sort((a,b)=>porCategoria[b]-porCategoria[a]);
+  const total = categorias.reduce((acc,c)=>acc+porCategoria[c],0);
+
+  let html = `<div class="card">
+    <h2 class="section-title">Despesas por categoria
+      <small>${formatDataBR(f.inicio)} a ${formatDataBR(f.fim)} · total ${formatMoeda(total)}</small>
+    </h2>`;
+
+  if(categorias.length === 0){
+    html += `<div class="empty">Nenhuma saída registrada nesse período.</div></div>`;
+    return html;
+  }
+
+  html += `<div style="max-width:320px;margin:0 auto;"><canvas id="dashboardChart" height="320"></canvas></div>`;
+  html += `<div style="margin-top:14px;">`;
+  categorias.forEach((cat, i)=>{
+    const cor = DASHBOARD_CORES[i % DASHBOARD_CORES.length];
+    const pct = total ? (porCategoria[cat]/total*100) : 0;
+    html += `<div class="category-row" data-action="ver-categoria-painel" data-categoria="${escHtml(cat)}" style="cursor:pointer;">
+      <span class="name"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${cor};margin-right:6px;"></span>${escHtml(cat)}</span>
+      <span style="font-size:.8rem;color:var(--ink-soft);margin-right:8px;">${pct.toFixed(1)}%</span>
+      <span class="valor saida">${formatMoeda(porCategoria[cat])}</span>
+    </div>`;
+  });
+  html += `</div></div>`;
+  return html;
+}
+
+function renderDashboardDrillDown(f, categoria){
+  const lancs = state.lancamentos
+    .filter(l=>l.tipo==='saida' && l.categoria===categoria && l.data>=f.inicio && l.data<=f.fim)
+    .sort((a,b)=> b.data.localeCompare(a.data) || b.id-a.id);
+  const total = lancs.reduce((acc,l)=>acc+l.valor,0);
+
+  let html = `<div class="card">
+    <button type="button" class="icon-btn" data-action="voltar-painel" title="Voltar" style="margin-bottom:8px;">← Voltar ao painel</button>
+    <h2 class="section-title">${escHtml(categoria)}
+      <small>${formatDataBR(f.inicio)} a ${formatDataBR(f.fim)} · total ${formatMoeda(total)}</small>
+    </h2>`;
+
+  if(lancs.length === 0){
+    html += `<div class="empty">Nenhuma saída dessa categoria nesse período.</div></div>`;
+    return html;
+  }
+
+  for(const l of lancs){
+    html += `<div class="lancamento-item" data-action="editar-lancamento" data-id="${l.id}">
+      <div class="info">
+        <div class="hist">${escHtml(l.historico)}</div>
+        <div class="meta">${formatDataBR(l.data)} · ${escHtml(l.conta)}</div>
+      </div>
+      <div class="valor saida">${formatMoeda(l.valor)}</div>
+    </div>`;
+  }
+  html += `</div>`;
+  return html;
+}
+
+function renderDashboardChart(){
+  const canvas = document.getElementById('dashboardChart');
+  if(!canvas) return;
+  const f = state.dashboardFiltros;
+  const porCategoria = despesasPorCategoriaNoPeriodo(f);
+  const categorias = Object.keys(porCategoria).sort((a,b)=>porCategoria[b]-porCategoria[a]);
+  const cores = categorias.map((c,i)=>DASHBOARD_CORES[i % DASHBOARD_CORES.length]);
+
+  if(state.dashboardChartInstance){
+    state.dashboardChartInstance.destroy();
+    state.dashboardChartInstance = null;
+  }
+
+  state.dashboardChartInstance = new Chart(canvas.getContext('2d'), {
+    type: 'pie',
+    data: {
+      labels: categorias,
+      datasets: [{
+        data: categorias.map(c=>porCategoria[c]),
+        backgroundColor: cores,
+        borderColor: '#FFFFFF',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx)=> `${ctx.label}: ${formatMoeda(ctx.parsed)}`
+          }
+        }
+      },
+      onClick: (evt, elements)=>{
+        if(!elements || elements.length===0) return;
+        const idx = elements[0].index;
+        state.dashboardCategoriaSelecionada = categorias[idx];
+        document.getElementById('dashboardArea').innerHTML = renderDashboardArea();
+        bindDashboardAreaEvents();
+      }
+    }
+  });
+}
+
+function bindDashboardAreaEvents(){
+  document.querySelectorAll('[data-action="ver-categoria-painel"]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      state.dashboardCategoriaSelecionada = el.dataset.categoria;
+      document.getElementById('dashboardArea').innerHTML = renderDashboardArea();
+      bindDashboardAreaEvents();
+    });
+  });
+  document.querySelectorAll('[data-action="voltar-painel"]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      state.dashboardCategoriaSelecionada = null;
+      document.getElementById('dashboardArea').innerHTML = renderDashboardArea();
+      bindDashboardAreaEvents();
+    });
+  });
+  document.querySelectorAll('[data-action="editar-lancamento"]').forEach(el=>{
+    el.addEventListener('click', ()=>abrirModalEditarLancamento(Number(el.dataset.id)));
+  });
+  renderDashboardChart();
+}
+
 function renderCategorias(){
   const cats = [...state.categorias].sort((a,b)=>{
     if(a.tipo !== b.tipo) {
@@ -1841,6 +2041,31 @@ function afterRender(){
         handleSalvarLancamento(form);
       });
     }
+  }
+
+  if(state.tab === 'dashboard'){
+    const form = document.getElementById('formDashboard');
+    if(form){
+      form.addEventListener('submit', (e)=>{
+        e.preventDefault();
+        const fd = new FormData(form);
+        const f = state.dashboardFiltros || defaultDashboardFiltros();
+        f.inicio = fd.get('inicio');
+        f.fim = fd.get('fim');
+        if(!f.inicio || !f.fim || f.inicio > f.fim){
+          showToast('Verifique o período informado.');
+          return;
+        }
+        state.dashboardFiltros = f;
+        state.dashboardCategoriaSelecionada = null;
+        document.getElementById('dashboardArea').innerHTML = renderDashboardArea();
+        bindDashboardAreaEvents();
+      });
+    }
+    bindDashboardAreaEvents();
+  } else if(state.dashboardChartInstance){
+    state.dashboardChartInstance.destroy();
+    state.dashboardChartInstance = null;
   }
 
   if(state.tab === 'relatorios'){
